@@ -37,29 +37,24 @@ impl Hash for Tag {
 }
 
 impl Tag {
-    #[inline]
     pub fn new(buf: Vec<String>) -> Self {
         Self { buf }
     }
     /// Return the **first** tag value (index `1`), if exists.
-    #[inline]
     pub fn content(&self) -> Option<&str> {
         self.buf.get(1).map(|s| s.as_str())
     }
 
     /// Get reference of array of strings
-    #[inline]
     pub fn as_vec(&self) -> &[String] {
         &self.buf
     }
 
     /// Consume tag and return array of strings
-    #[inline]
     pub fn to_vec(self) -> Vec<String> {
         self.buf
     }
     /// Get tag kind
-    #[inline]
     pub fn kind(&self) -> String {
         // SAFETY: `buf` must not be empty, checked during parsing.
         self.buf[0].clone()

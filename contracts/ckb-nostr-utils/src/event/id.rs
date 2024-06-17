@@ -4,14 +4,14 @@ use alloc::string::{String, ToString};
 use alloc::vec;
 use core::fmt;
 use core::str::FromStr;
+use hex;
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{json, Value};
-
-pub use super::tag::Tag;
-use crate::key::public_key::PublicKey;
-use crate::Error;
-use hex;
 use sha2::{digest::Digest, Sha256};
+
+use super::tag::Tag;
+use crate::error::Error;
+use crate::key::public_key::PublicKey;
 
 /// Event ID size
 pub const EVENT_ID_SIZE: usize = 32;
@@ -38,7 +38,7 @@ impl EventId {
         let mut hasher = Sha256::default();
         hasher.update(event_str.as_bytes());
         let hash = hasher.finalize();
-        let hash: [u8; 32] = (&hash).clone().try_into().unwrap();
+        let hash = hash.try_into().unwrap();
         Self::owned(hash)
     }
 
@@ -47,7 +47,7 @@ impl EventId {
         Self(bytes)
     }
 
-    /// Try to parse [EventId] from `hex`, `bech32` or [NIP21](https://github.com/nostr-protocol/nips/blob/master/21.md) uri
+    /// Try to parse [EventId] from `hex`
     pub fn parse<S>(id: S) -> Result<Self, Error>
     where
         S: AsRef<str>,

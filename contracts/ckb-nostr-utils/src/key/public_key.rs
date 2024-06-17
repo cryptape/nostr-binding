@@ -1,13 +1,15 @@
-use crate::Error;
+use crate::error::Error;
 use alloc::string::String;
 use core::str::FromStr;
 use core::{fmt, ops::Deref};
 use serde::{Deserialize, Deserializer, Serialize};
 
+pub const PUBKEY_SIZE: usize = 32;
+
 /// Public Key
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct PublicKey {
-    inner: [u8; 32],
+    inner: [u8; PUBKEY_SIZE],
 }
 
 impl fmt::Debug for PublicKey {
@@ -17,7 +19,7 @@ impl fmt::Debug for PublicKey {
 }
 
 impl Deref for PublicKey {
-    type Target = [u8; 32];
+    type Target = [u8; PUBKEY_SIZE];
 
     fn deref(&self) -> &Self::Target {
         &self.inner
@@ -63,11 +65,11 @@ impl PublicKey {
     }
 
     /// Get public key as `bytes`
-    pub fn to_bytes(&self) -> [u8; 32] {
+    pub fn to_bytes(&self) -> [u8; PUBKEY_SIZE] {
         self.inner
     }
 
-    pub fn as_slice(&self) -> &[u8; 32] {
+    pub fn as_slice(&self) -> &[u8; PUBKEY_SIZE] {
         &self.inner
     }
 }
@@ -75,7 +77,7 @@ impl PublicKey {
 impl FromStr for PublicKey {
     type Err = Error;
 
-    /// Try to parse [PublicKey] from `hex`, `bech32` or [NIP21](https://github.com/nostr-protocol/nips/blob/master/21.md) uri
+    /// Try to parse [PublicKey] from `hex`
     #[inline]
     fn from_str(public_key: &str) -> Result<Self, Self::Err> {
         Self::parse(public_key)

@@ -2,6 +2,7 @@ extern crate alloc;
 
 pub mod id;
 pub mod tag;
+
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::cmp::Ordering;
@@ -9,16 +10,16 @@ use core::fmt;
 use core::hash::{Hash, Hasher};
 use core::ops::Deref;
 use core::str::FromStr;
-use id::Tag;
 use k256::ecdsa::signature::hazmat::PrehashVerifier;
 use k256::schnorr::{Signature, VerifyingKey};
 use serde::ser::SerializeStruct;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
+use tag::Tag;
 
 pub use self::id::EventId;
+use crate::error::Error;
 use crate::key::public_key::PublicKey;
-use crate::Error;
 
 const ID: &str = "id";
 const PUBKEY: &str = "pubkey";
