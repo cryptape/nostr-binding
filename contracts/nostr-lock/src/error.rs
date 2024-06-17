@@ -11,12 +11,14 @@ pub enum Error {
     Encoding,
     // [Auth]
     // Add customized errors here...
-    AuthFail,
+    ValidationFail,
     WitnessReadFail,
     // [nostr]
     UnlockEventInvalidTxHashTag,
     InvalidUnlockEventKind,
     PublicKeyNotMatched,
+    TagNotFound,
+    WrongEventId,
 }
 
 impl From<SysError> for Error {
