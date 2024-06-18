@@ -40,7 +40,7 @@ or by PoW difficulty(PoW difficulty is non-zero).
 
 A 32-byte `sighash_all` message can be calculated via [blake2b hash
 function](https://github.com/nervosnetwork/rfcs/blob/master/rfcs/0022-transaction-structure/0022-transaction-structure.md#crypto-primitives)
-function with following data:
+with following data:
 
 * Transaction hash
 * Witness length and content in same script group covered by inputs, excluding lock field
@@ -146,12 +146,12 @@ Witnesses:
             "id": "000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
             "pubkey": "0000...00",
             "created_at": <unix timestamp in seconds>,
-            "kind": <integer between 0 and 65535>,
+            "kind": 23334,
             "tags": [
                  ["nonce", "quick brown fox", "24"],
                  ["ckb_sighash_all", "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"]
             ],
-            "content": <arbitrary string>,
+            "content": "Signing a CKB transaction\n\nIMPORTANT: Please verify the integrity and authenticity of connected Nostr client before signing this message\n",
             "sig": "0000...00"
         }
       <...>
@@ -183,11 +183,11 @@ Witnesses:
             "id": "0011...eeff",
             "pubkey": <schnorr pubkey, "dead...beef">,
             "created_at": <unix timestamp in seconds>,
-            "kind": <integer between 0 and 65535>,
+            "kind": 23334,
             "tags": [
                 ["ckb_sighash_all", "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"]
             ],
-            "content": <arbitrary string>,
+            "content": "Signing a CKB transaction\n\nIMPORTANT: Please verify the integrity and authenticity of connected Nostr client before signing this message\n",
             "sig": <schnorr signature, "ffee...0000">
         }
       <...>
