@@ -9,7 +9,7 @@ proof-of-work mechanics from Nostr to ensure a fair launch.
 
 
 ## Lock Script
-An nostr lock script has the following structure:
+A nostr lock script has the following structure:
 ```
 Code hash: nostr lock script code hash
 Hash type: nostr lock script hash type
@@ -17,7 +17,7 @@ Args: <schnorr pubkey, 32 bytes> <PoW difficulty, 1 byte>
 ```
 
 When the PoW difficulty is zero, the Schnorr pubkey is used to unlock. When the
-PoW difficulty is non-zero, the Schnorr pubkey is ignored and should be all
+PoW difficulty is non-zero, the Schnorr pubkey is not used and should be all
 zero, and another unlock method is used. More details will be explained below.
 
 
@@ -26,7 +26,7 @@ When unlocking an nostr lock script, the corresponding witness must be a proper
 `WitnessArgs` data structure in molecule format. In the lock field of the
 WitnessArgs, an `event` from
 [NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md) structure
-must be present in json format encoded in UTF-8.
+must be present in JSON format encoded in UTF-8.
 
 Hexadecimal strings are frequently used in `event` in JSON format. Only
 lowercase letters can be used in hexadecimal strings. For example, "00" and
@@ -38,7 +38,7 @@ valid. This convention is applied throughout this specification.
 There are 2 methods to unlock nostr lock script: by key(PoW difficulty is zero)
 or by PoW difficulty(PoW difficulty is non-zero).
 
-A 32 bytes `sighash_all` message can be calculated via [blake2b hash
+A 32-byte `sighash_all` message can be calculated via [blake2b hash
 function](https://github.com/nervosnetwork/rfcs/blob/master/rfcs/0022-transaction-structure/0022-transaction-structure.md#crypto-primitives)
 function with following data:
 
@@ -71,28 +71,33 @@ second as the tag value.
 **Rule 1**: A tag key with "ckb_sighash_all" must be present. Its corresponding
 tag value must be equal to `sighash_all` in hexadecimal format.
 
-This rule should be followed by both of the two unlocking methods described
-below. Here is an example of such tag:
+Here is an example of such tag:
 ```json
 ["ckb_sighash_all", "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"]
 ```
+
+**Rule 2** The `id` in the `event` is calculated based on
+[NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md#events-and-signatures).
+
+These 2 rules(1,2) should be followed by both of the two unlocking methods
+described below.
 
 ### Unlocking by PoW
 When PoW difficulty is non-zero, this unlocking method is used. It follows
 [NIP-13](https://github.com/nostr-protocol/nips/blob/master/13.md). 
 
-**Rule 2**: A tag key with `nonce` must be present. Its corresponding tag value
+**Rule 3**: A tag key with `nonce` must be present. Its corresponding tag value
 can be any string.
 
-**Rule 3**: The third entry to the `nonce` tag SHOULD contain the PoW
+**Rule 4**: The third entry to the `nonce` tag should contain the PoW
 difficulty in decimal string described in script args.
 
-**Rule 4**: The `id` in `event` should has a difficulty no less than PoW
+**Rule 5**: The `id` in `event` should has a difficulty no less than PoW
 difficult specified in script args.
 
-**Rule 5**: The `pubkey` in script args should be all zeros.
+**Rule 6**: The `pubkey` in script args should be all zeros.
 
-When the rules above(1,2,3,4,5) are met, the validation is successful.
+When the rules above(1,2,3,4,5,6) are met, the validation is successful.
 
 The `sighash_all` is affected by the length of the `event` in the witness. It is
 suggested to reserve the `nonce` tag value as a very long string, like the
@@ -106,12 +111,12 @@ For each mining attempt, only mutate the long string while keeping the length un
 ### Unlocking by Key
 When PoW difficulty is zero, this unlocking method is used. 
 
-**Rule 6**: The `pubkey` field in `event` should be equal to pubkey in script args in hexadecimal string.
+**Rule 7**: The `pubkey` field in `event` should be equal to pubkey in script args in hexadecimal string.
 
-**Rule 7**: The `sig` field, along with the `pubkey` and `id` fields in the
+**Rule 8**: The `sig` field, along with the `pubkey` and `id` fields in the
 `event`, can be validated via Schnorr verification.
 
-When the rules above(1,6,7) are met, the validation is successful.
+When the rules above(1,2,7,8) are met, the validation is successful.
 
 ## Examples
 
@@ -148,9 +153,11 @@ Witnesses:
       <...>
 ```
 
-The `pubkey` and `sig` can be filled by a random 32-bytes lowercase hex-encoded
-public key and a random 64-bytes lowercase hex of the signature to meet
-requirement of deserialization defined in NIP-01.
+The `pubkey` and `sig` can be filled with arbitrary 32-byte lowercase
+hex-encoded public key and 64-byte lowercase hex-encoded signature values to
+meet the deserialization requirement defined in NIP-01. A value with all zeros
+is a suitable choice.
+
 
 ### Unlocking by Key
 ```
