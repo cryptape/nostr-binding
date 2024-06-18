@@ -49,7 +49,7 @@ function with following data:
 A reference implementation in C can be found [here](https://github.com/nervosnetwork/ckb-system-scripts/blob/a7b7c75662ed950c9bd024e15f83ce702a54996e/c/secp256k1_blake160_sighash_all.c#L219).
 
 The `event` in witness has following format:
-```json
+```text
 {
   "id": <32-bytes lowercase hex-encoded sha256 of the serialized event data>,
   "pubkey": <32-bytes lowercase hex-encoded public key of the event creator>,
@@ -76,28 +76,32 @@ Here is an example of such tag:
 ["ckb_sighash_all", "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"]
 ```
 
-**Rule 2** The `id` in the `event` is calculated based on
+**Rule 2**: The `id` in the `event` is calculated based on
 [NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md#events-and-signatures).
 
-These 2 rules(1,2) should be followed by both of the two unlocking methods
+**Rule 3**: The `kind` in the `event` should be equal to 23334. The `content` in
+the `event` should be identical to following fixed string:
+"Signing a CKB transaction\n\nIMPORTANT: Please verify the integrity and authenticity of connected Nostr client before signing this message\n"
+
+These 3 rules(1,2,3) should be followed by both of the two unlocking methods
 described below.
 
 ### Unlocking by PoW
 When PoW difficulty is non-zero, this unlocking method is used. It follows
 [NIP-13](https://github.com/nostr-protocol/nips/blob/master/13.md). 
 
-**Rule 3**: A tag key with `nonce` must be present. Its corresponding tag value
+**Rule 4**: A tag key with `nonce` must be present. Its corresponding tag value
 can be any string.
 
-**Rule 4**: The third entry to the `nonce` tag should contain the PoW
+**Rule 5**: The third entry to the `nonce` tag should contain the PoW
 difficulty in decimal string described in script args.
 
-**Rule 5**: The `id` in `event` should has a difficulty no less than PoW
-difficult specified in script args.
+**Rule 6**: The `id` in `event` should has a difficulty no less than PoW
+difficulty specified in script args.
 
-**Rule 6**: The `pubkey` in script args should be all zeros.
+**Rule 7**: The `pubkey` in script args should be all zeros.
 
-When the rules above(1,2,3,4,5,6) are met, the validation is successful.
+When the rules above(1,2,3,4,5,6,7) are met, the validation is successful.
 
 The `sighash_all` is affected by the length of the `event` in the witness. It is
 suggested to reserve the `nonce` tag value as a very long string, like the
@@ -111,19 +115,19 @@ For each mining attempt, only mutate the long string while keeping the length un
 ### Unlocking by Key
 When PoW difficulty is zero, this unlocking method is used. 
 
-**Rule 7**: The `pubkey` field in `event` should be equal to pubkey in script args in hexadecimal string.
+**Rule 8**: The `pubkey` field in `event` should be equal to pubkey in script args in hexadecimal string.
 
-**Rule 8**: The `sig` field, along with the `pubkey` and `id` fields in the
+**Rule 9**: The `sig` field, along with the `pubkey` and `id` fields in the
 `event`, can be validated via Schnorr verification.
 
-When the rules above(1,2,7,8) are met, the validation is successful.
+When the rules above(1,2,3,8,9) are met, the validation is successful.
 
 ## Examples
 
 ### Unlocking by PoW
 
 
-```
+```yaml
 CellDeps:
     <vec> Nostr lock script cell
 Inputs:
@@ -131,14 +135,14 @@ Inputs:
         Data: <...>
         Type: <...>
         Lock:
-            code_hash: nostr lock script code hash
+            code_hash: <nostr lock script code hash>
             args: <schnorr pubkey, 0000...00><PoW difficulty, 24>
 Outputs:
     <vec> Any cell
 Witnesses:
     WitnessArgs structure:
-      Lock:
-        """{
+      Lock: >
+        {
             "id": "000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
             "pubkey": "0000...00",
             "created_at": <unix timestamp in seconds>,
@@ -149,7 +153,7 @@ Witnesses:
             ],
             "content": <arbitrary string>,
             "sig": "0000...00"
-        }"""
+        }
       <...>
 ```
 
@@ -160,7 +164,7 @@ is a suitable choice.
 
 
 ### Unlocking by Key
-```
+```yaml
 CellDeps:
     <vec> Nostr lock script cell
 Inputs:
@@ -168,14 +172,14 @@ Inputs:
         Data: <...>
         Type: <...>
         Lock:
-            code_hash: nostr lock script code hash
+            code_hash: <nostr lock script code hash>
             args: <schnorr pubkey, dead...beef><PoW difficulty, 0>
 Outputs:
     <vec> Any cell
 Witnesses:
     WitnessArgs structure:
-      Lock:
-        """{
+      Lock: >
+        {
             "id": "0011...eeff",
             "pubkey": <schnorr pubkey, "dead...beef">,
             "created_at": <unix timestamp in seconds>,
@@ -185,7 +189,7 @@ Witnesses:
             ],
             "content": <arbitrary string>,
             "sig": <schnorr signature, "ffee...0000">
-        }"""
+        }
       <...>
 ```
 
