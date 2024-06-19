@@ -1,6 +1,5 @@
+use ckb_nostr_utils::error::Error as NostrError;
 use ckb_std::error::SysError;
-
-#[cfg(test)]
 extern crate alloc;
 
 #[repr(i8)]
@@ -9,16 +8,24 @@ pub enum Error {
     ItemMissing,
     LengthNotEnough,
     Encoding,
-    // [Auth]
-    // Add customized errors here...
+    // nostr lock script error code starts from 10
+    Unknown = 10,
+    SighashAllMismatched,
+    KindMismatched,
+    ContentMismatched,
+    GenerateSighashAll,
+    InvalidScriptArgs,
+    InvalidPublicKey,
+    InvalidEventId,
     ValidationFail,
-    WitnessReadFail,
-    // [nostr]
-    UnlockEventInvalidTxHashTag,
-    InvalidUnlockEventKind,
-    PublicKeyNotMatched,
-    TagNotFound,
-    WrongEventId,
+    InvalidSignatureFormat,
+    UnknownKey,
+    Json,
+    PubkeyNotEmpty,
+    WrongTargetDifficulty,
+    PoWDifficulty,
+    NonceNotFound,
+    PubkeyNotFound,
 }
 
 impl From<SysError> for Error {
@@ -28,7 +35,20 @@ impl From<SysError> for Error {
             SysError::ItemMissing => Self::ItemMissing,
             SysError::LengthNotEnough(_) => Self::LengthNotEnough,
             SysError::Encoding => Self::Encoding,
-            SysError::Unknown(err_code) => panic!("unexpected sys error {}", err_code),
+            SysError::Unknown(_) => Self::Unknown,
+        }
+    }
+}
+
+impl From<NostrError> for Error {
+    fn from(err: NostrError) -> Self {
+        match err {
+            NostrError::InvalidPublicKey => Self::InvalidPublicKey,
+            NostrError::InvalidEventId => Self::InvalidEventId,
+            NostrError::ValidationFail => Self::ValidationFail,
+            NostrError::InvalidSignatureFormat => Self::InvalidSignatureFormat,
+            NostrError::UnknownKey(_) => Self::UnknownKey,
+            NostrError::Json(_) => Self::Json,
         }
     }
 }
