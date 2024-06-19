@@ -21,7 +21,7 @@ use error::Error;
 use util::generate_sighash_all;
 
 ckb_std::entry!(program_entry);
-default_alloc!();
+default_alloc!(4 * 1024, 1024 * 1024, 64);
 
 pub fn program_entry() -> i8 {
     match entry() {
