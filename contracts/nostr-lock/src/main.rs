@@ -17,20 +17,16 @@ ckb_std::entry!(program_entry);
 #[cfg(not(test))]
 default_alloc!();
 
-use alloc::format;
-use alloc::{ffi::CString, string::ToString};
 use ckb_std::high_level::load_tx_hash;
 use ckb_std::{
     ckb_constants::Source,
-    ckb_types::{bytes::Bytes, core::ScriptHashType, prelude::Unpack},
-    high_level::{exec_cell, load_script, load_witness_args},
+    ckb_types::{bytes::Bytes, prelude::Unpack},
+    high_level::{load_script, load_witness_args},
 };
 use hex::encode;
 
-use ckb_hash::blake2b_256;
+use ckb_nostr_utils::event::Event;
 use error::Error;
-use nostr::Event;
-use nostr::JsonUtil;
 
 use crate::config::ASSET_UNLOCK_KIND;
 use crate::util::get_event_ckb_tx_hash;
@@ -63,19 +59,15 @@ fn auth() -> Result<(), Error> {
 }
 
 pub fn validate_event(event: Event) -> Result<(), Error> {
-    event.verify_id().unwrap();
-
-    let kind = event.clone().kind.as_u32();
-    if !kind.eq(&(ASSET_UNLOCK_KIND as u32)) {
+    let kind = event.clone().kind;
+    if kind != ASSET_UNLOCK_KIND {
         return Err(Error::InvalidUnlockEventKind);
     }
-
     // todo: check pow
-
     // check tx hash tag
     let tx_hash = load_tx_hash()?;
-    let tx_hash_in_event = get_event_ckb_tx_hash(event.clone());
-    if !encode(tx_hash).eq(&tx_hash_in_event) {
+    let tx_hash_in_event = get_event_ckb_tx_hash(event.clone())?;
+    if encode(tx_hash) != tx_hash_in_event {
         return Err(Error::UnlockEventInvalidTxHashTag);
     }
 
@@ -85,40 +77,10 @@ pub fn validate_event(event: Event) -> Result<(), Error> {
     if !public_key.eq(&pubkey) {
         return Err(Error::PublicKeyNotMatched);
     }
-
-    validate_event_signature(event.clone())?;
-
-    Ok(())
-}
-
-pub fn validate_event_signature(event: Event) -> Result<(), Error> {
-    let sig = event.signature();
-    let signature = sig.as_ref();
-    let message = event.id.as_bytes();
-    let public_key = event.pubkey.to_bytes();
-    let mut signature_auth = [0u8; 96];
-    signature_auth[..32].copy_from_slice(&public_key);
-    signature_auth[32..].copy_from_slice(signature.as_ref());
-
-    let mut pubkey_hash = [0u8; 20];
-    let args = blake2b_256(public_key);
-    pubkey_hash.copy_from_slice(&args[0..20]);
-
-    // AuthAlgorithmIdSchnorr = 7
-    let algorithm_id_str = CString::new(format!("{:02X?}", 7u8)).unwrap();
-    let signature_str = CString::new(encode(signature_auth).to_string()).unwrap();
-    let message_str = CString::new(encode(message).to_string()).unwrap();
-    let pubkey_hash_str = CString::new(encode(pubkey_hash).to_string()).unwrap();
-
-    let args = [
-        algorithm_id_str.as_c_str(),
-        signature_str.as_c_str(),
-        message_str.as_c_str(),
-        pubkey_hash_str.as_c_str(),
-    ];
-
-    exec_cell(&AUTH_CODE_HASH, ScriptHashType::Data1, &args).map_err(|_| Error::AuthFail)?;
-    Ok(())
+    event.verify_id().map_err(|_| Error::WrongEventId)?;
+    let result = event.verify_signature();
+    debug!("verify_signature returns {:?}", result);
+    result.map_err(|_| Error::ValidationFail)
 }
 
 pub fn load_nostr_pubkey_from_script_args() -> Result<[u8; 32], Error> {
