@@ -140,7 +140,7 @@ Inputs:
 Outputs:
     <vec> Any cell
 Witnesses:
-    WitnessArgs structure:
+    <vec> WitnessArgs
       Lock: >
         {
             "id": "000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
@@ -154,7 +154,6 @@ Witnesses:
             "content": "Signing a CKB transaction\n\nIMPORTANT: Please verify the integrity and authenticity of connected Nostr client before signing this message\n",
             "sig": "0000...00"
         }
-      <...>
 ```
 
 The `pubkey` and `sig` can be filled with arbitrary 32-byte lowercase
@@ -177,7 +176,7 @@ Inputs:
 Outputs:
     <vec> Any cell
 Witnesses:
-    WitnessArgs structure:
+    <vec> WitnessArgs
       Lock: >
         {
             "id": "0011...eeff",
@@ -190,7 +189,6 @@ Witnesses:
             "content": "Signing a CKB transaction\n\nIMPORTANT: Please verify the integrity and authenticity of connected Nostr client before signing this message\n",
             "sig": <schnorr signature, "ffee...0000">
         }
-      <...>
 ```
 
 

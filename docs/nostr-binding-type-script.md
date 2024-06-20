@@ -39,10 +39,12 @@ witness must be a proper `WitnessArgs` data structure in molecule format. In
 [NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md) structure
 must be present in JSON format encoded in UTF-8. The `id` of `event` should be
 verified according to NIP-01 and be equal to nostr event id for binding on
-script `args`(rule 1). In this `event`, there must be a tag key with name
+script `args`. In this `event`, there must be a tag key with name
 "ckb_global_unique_id" and its corresponding tag value is equal to global unique
-ID on script `args` in hexadecimal string(rule 2). The `kind` in `event` should
-be equal to 23333(rule 3).
+ID on script `args` in hexadecimal string. Finally, the `sig` field, along with
+the `pubkey` and `id` fields in the `event`, can be validated via Schnorr
+verification.
+
 
 ## Examples
 
@@ -61,21 +63,23 @@ Outputs:
             code_hash: <nostr binding type script code hash>
             args: <event id, 0011...eeff><global unique ID, aabb...0011>
 Witnesses:
-    WitnessArgs structure:
-      output_type: >
-        {
-            "id": "0011...eeff",
-            "pubkey": <schnorr pubkey, "dead...beef">,
-            "created_at": <unix timestamp in seconds>,
-            "kind": 23333,
-            "tags": [
-                ["ckb_global_unique_id", "aabb...0011"]
-            ],
-            "content": <arbitrary string>,
-            "sig": <schnorr signature, "ffee...0000">
-        }
-      <...>
+    <vec> WitnessArgs
+        lock: <...>
+        input_type: <...>
+        output_type: >
+            {
+                "id": "0011...eeff",
+                "pubkey": <schnorr pubkey, "dead...beef">,
+                "created_at": <unix timestamp in seconds>,
+                "kind": <0~65535>,
+                "tags": [
+                    ["ckb_global_unique_id", "aabb...0011"]
+                ],
+                "content": <arbitrary string>,
+                "sig": <schnorr signature, "ffee...0000">
+            }
 ```
+
 
 ### Transfer
 ```yaml
