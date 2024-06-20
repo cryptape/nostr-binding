@@ -1,6 +1,11 @@
-# nostr-lock
+# Nostr Lock Script
 
-TODO: Write this readme
+## Build
+
+```
+make build
+```
+
 
 *This contract was bootstrapped with [ckb-script-templates].*
 

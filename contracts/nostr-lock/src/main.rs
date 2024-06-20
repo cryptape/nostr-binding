@@ -1,138 +1,116 @@
 #![no_std]
 #![cfg_attr(not(test), no_main)]
 
-#[cfg(test)]
-extern crate alloc;
-
+mod blake2b;
 mod config;
 mod error;
 mod util;
 
-use alloc::vec::Vec;
-use ckb_std::debug;
-#[cfg(not(test))]
-use ckb_std::default_alloc;
-#[cfg(not(test))]
-ckb_std::entry!(program_entry);
-#[cfg(not(test))]
-default_alloc!();
-
-use ckb_std::high_level::load_tx_hash;
-use ckb_std::{
-    ckb_constants::Source,
-    ckb_types::{bytes::Bytes, prelude::Unpack},
-    high_level::{load_script, load_witness_args},
-};
-use hex::encode;
-
+use alloc::format;
 use ckb_nostr_utils::event::Event;
+use ckb_std::ckb_constants::Source;
+use ckb_std::ckb_types::bytes::Bytes;
+use ckb_std::ckb_types::prelude::Unpack;
+use ckb_std::default_alloc;
+use ckb_std::high_level::{load_script, load_witness_args};
+use config::NONCE;
+use config::NOSTR_LOCK_CONTENT;
+use config::NOSTR_LOCK_KIND;
+use config::{SCRIPT_ARGS_LEN, SIGHASH_ALL_TAG_NAME};
 use error::Error;
+use util::generate_sighash_all;
 
-use crate::config::ASSET_UNLOCK_KIND;
-use crate::util::get_event_ckb_tx_hash;
-
-include!(concat!(env!("OUT_DIR"), "/auth_code_hash.rs"));
+ckb_std::entry!(program_entry);
+default_alloc!(4 * 1024, 1024 * 1024, 64);
 
 pub fn program_entry() -> i8 {
-    match auth() {
+    match entry() {
         Ok(_) => 0,
-        Err(err) => err as i8,
+        Err(e) => e as i8,
     }
 }
 
-fn auth() -> Result<(), Error> {
-    // read nostr event from witness
-    let witness_args = load_witness_args(0, Source::GroupInput)?;
-    let witness = witness_args
-        .lock()
-        .to_opt()
-        .ok_or(Error::WitnessReadFail)?
-        .raw_data();
-    let events_bytes = witness.to_vec();
-    let events = decode_events(events_bytes);
-
-    for event in events {
-        validate_event(event)?;
-    }
-
-    Ok(())
-}
-
-pub fn validate_event(event: Event) -> Result<(), Error> {
-    let kind = event.clone().kind;
-    if kind != ASSET_UNLOCK_KIND {
-        return Err(Error::InvalidUnlockEventKind);
-    }
-    // todo: check pow
-    // check tx hash tag
-    let tx_hash = load_tx_hash()?;
-    let tx_hash_in_event = get_event_ckb_tx_hash(event.clone())?;
-    if encode(tx_hash) != tx_hash_in_event {
-        return Err(Error::UnlockEventInvalidTxHashTag);
-    }
-
-    // check script args owner
-    let pubkey = event.pubkey.to_bytes();
-    let public_key = load_nostr_pubkey_from_script_args()?;
-    if !public_key.eq(&pubkey) {
-        return Err(Error::PublicKeyNotMatched);
-    }
-    event.verify_id().map_err(|_| Error::WrongEventId)?;
-    let result = event.verify_signature();
-    debug!("verify_signature returns {:?}", result);
-    result.map_err(|_| Error::ValidationFail)
-}
-
-pub fn load_nostr_pubkey_from_script_args() -> Result<[u8; 32], Error> {
-    let mut nostr_public_key = [0u8; 32];
+pub fn entry() -> Result<(), Error> {
     let script = load_script()?;
     let args: Bytes = script.args().unpack();
-    nostr_public_key.copy_from_slice(&args[0..32]);
-    Ok(nostr_public_key)
+    if args.len() != SCRIPT_ARGS_LEN {
+        return Err(Error::InvalidScriptArgs);
+    }
+
+    let sighash_all = generate_sighash_all()?;
+    let sighash_all_hex = hex::encode(&sighash_all);
+
+    let witness_args = load_witness_args(0, Source::GroupInput)?;
+    let lock: Bytes = witness_args.lock().to_opt().unwrap().unpack();
+    let event = Event::from_json(lock.as_ref())?;
+
+    // rule 1
+    let found = event.tags().into_iter().any(|e| {
+        let e = e.as_vec();
+        e.len() == 2 && e[0] == SIGHASH_ALL_TAG_NAME && e[1] == sighash_all_hex
+    });
+    if !found {
+        return Err(Error::SighashAllMismatched);
+    }
+    // rule 2
+    event.verify_id()?;
+
+    // rule 3
+    if event.kind() != NOSTR_LOCK_KIND {
+        return Err(Error::KindMismatched);
+    }
+    if event.content() != NOSTR_LOCK_CONTENT {
+        return Err(Error::ContentMismatched);
+    }
+
+    let schnorr_pubkey: [u8; 32] = args[0..32].try_into().unwrap();
+    let pow_difficulty = args[32];
+    if pow_difficulty == 0 {
+        verify_key(&event, schnorr_pubkey)
+    } else {
+        verify_pow(&event, pow_difficulty, schnorr_pubkey)
+    }
 }
 
-// witness format:
-//      total_event_count(1 byte, le) + first_event_length(8 bytes, le) + first_event_content + second_event_length(8 bytes, le)....
-pub fn decode_events(data: Vec<u8>) -> Vec<Event> {
-    // Ensure we have at least 1 byte for the total number of events
-    if data.is_empty() {
-        debug!("Not enough data to decode events.");
-        panic!("Not enough data to decode events.");
-    }
+fn verify_pow(event: &Event, pow_difficulty: u8, schnorr_pubkey: [u8; 32]) -> Result<(), Error> {
+    let pow_difficulty_str = format!("{}", pow_difficulty);
 
-    let mut cursor = 1; // Start after the first byte (total number of events)
-    let mut events = Vec::new();
-
-    // Get the total number of events
-    let total_events = data[0] as usize;
-
-    // Iterate over each event
-    for _ in 0..total_events {
-        // Ensure we have enough bytes to read the event length
-        if data.len() < cursor + 8 {
-            debug!("Not enough data to decode event length.");
-            panic!("Not enough data to decode events.");
+    let mut validated = false;
+    for tag in event.tags() {
+        let entries = tag.clone().to_vec();
+        // rule 4
+        if entries.len() == 3 && entries[0] == NONCE {
+            // rule 5
+            if entries[2] != pow_difficulty_str {
+                return Err(Error::WrongTargetDifficulty);
+            } else {
+                // rule 6
+                if event.id().check_pow(pow_difficulty) {
+                    validated = true;
+                } else {
+                    return Err(Error::PoWDifficulty);
+                }
+            }
         }
-
-        // Get the length of the current event
-        let event_length_bytes: [u8; 8] = data[cursor..cursor + 8].try_into().unwrap();
-        let event_length = u64::from_le_bytes(event_length_bytes) as usize;
-
-        cursor += 8; // Move the cursor to the start of the event data
-
-        // Ensure we have enough bytes to read the event data
-        if data.len() < cursor + event_length {
-            debug!("Not enough data to decode event.");
-            panic!("Not enough data to decode events.");
-        }
-
-        // Extract the event data
-        let event_data = &data[cursor..cursor + event_length].to_vec();
-        let event = Event::from_json(event_data).unwrap();
-        events.push(event);
-
-        cursor += event_length; // Move the cursor to the next event length
     }
+    // rule 7
+    if schnorr_pubkey != [0u8; 32] {
+        return Err(Error::PubkeyNotEmpty);
+    }
+    if validated {
+        Ok(())
+    } else {
+        Err(Error::NonceNotFound)
+    }
+}
 
-    events
+fn verify_key(event: &Event, schnorr_pubkey: [u8; 32]) -> Result<(), Error> {
+    let schnorr_pubkey_hex = hex::encode(&schnorr_pubkey);
+    // rule 8
+    if event.author().to_hex() != schnorr_pubkey_hex {
+        return Err(Error::PubkeyNotFound);
+    }
+    // rule 9
+    event.verify_signature()?;
+    Ok(())
 }

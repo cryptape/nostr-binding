@@ -159,8 +159,8 @@ Witnesses:
 
 The `pubkey` and `sig` can be filled with arbitrary 32-byte lowercase
 hex-encoded public key and 64-byte lowercase hex-encoded signature values to
-meet the deserialization requirement defined in NIP-01. A value with all zeros
-is a suitable choice.
+meet the deserialization requirement defined in NIP-01. It's not necessary to
+validate the signature.
 
 
 ### Unlocking by Key
