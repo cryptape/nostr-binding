@@ -122,6 +122,48 @@ When PoW difficulty is zero, this unlocking method is used.
 
 When the rules above(1,2,3,8,9) are met, the validation is successful.
 
+
+## Signing Issue
+The signing message `sighash_all` is affected by the length of the `event`
+contained in the `lock` field of `WitnessArgs`. In other words, when the `event`
+length changes, the `sighash_all` changes as well, impacting the signing
+process. The following signing procedure is suggested:
+
+1. Assemble a dummy `event` with the following dummy elements:
+    - `pubkey` with all zeros
+    - Tag `ckb_sighash_all` with a dummy tag value of 32 bytes zeros in hexadecimal string
+    - `sig` with a value of 64 bytes zeros in hexadecimal string
+    - `created_at` with the timestamp
+    - `kind` with the value 23334
+    - `content` with the fixed string
+    - `id` with all zeros
+
+Here is an example:
+
+```json
+{
+    "id": "00..00",
+    "pubkey": "00..00",
+    "created_at": 123456,
+    "kind": 23334,
+    "tags": [
+        ["ckb_sighash_all", "0000000000000000000000000000000000000000000000000000000000000000"]
+    ],
+    "content": "Signing a CKB transaction\n\nIMPORTANT: Please verify the integrity and authenticity of the connected Nostr client before signing this message\n",
+    "sig": "00..00"
+}
+```
+
+2. Serialize this dummy event and calculate its length.
+3. Fill `lock` in `WitnessArgs` with zeros, matching the calculated length above.
+4. Calculate the `sighash_all`.
+5. Assemble a new `event` with `sighash_all` and other information. Ensure the `created_at` field remains the same length.
+6. Sign the `event` with the Nostr client.
+7. Double-check that the new `event` length matches the dummy `event`.
+
+For the same reason, while unlocking by PoW, the `nonce` tag value should have a
+fixed length for every mining attempt. Otherwise, the `sighash_all` will change.
+
 ## Examples
 
 ### Unlocking by PoW

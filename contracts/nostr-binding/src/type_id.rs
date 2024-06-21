@@ -20,7 +20,6 @@ pub fn has_type_id_cell(index: usize, source: Source) -> bool {
             if let SysError::LengthNotEnough(_) = e {
                 return true;
             }
-            debug!("load cell err: {:?}", e);
             false
         }
     }
