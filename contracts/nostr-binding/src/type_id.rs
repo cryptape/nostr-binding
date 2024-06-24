@@ -1,11 +1,11 @@
 use alloc::vec::Vec;
-use ckb_hash::Blake2bBuilder;
+use blake2b_ref::Blake2bBuilder;
 use ckb_std::{
     ckb_constants::Source,
     ckb_types::prelude::Entity,
     debug,
     error::SysError,
-    high_level::{load_cell_type_hash, load_input, load_script, load_script_hash},
+    high_level::{load_cell_type_hash, load_input, load_script_hash},
     syscalls::load_cell,
 };
 
@@ -20,7 +20,6 @@ pub fn has_type_id_cell(index: usize, source: Source) -> bool {
             if let SysError::LengthNotEnough(_) = e {
                 return true;
             }
-            debug!("load cell err: {:?}", e);
             false
         }
     }
@@ -46,7 +45,7 @@ fn locate_first_type_id_output_index() -> Result<usize, Error> {
 pub fn validate_type_id(type_id: [u8; 32]) -> Result<(), Error> {
     if has_type_id_cell(1, Source::GroupInput) || has_type_id_cell(1, Source::GroupOutput) {
         debug!("There can only be at most one input and at most one output type ID cell!");
-        return Err(Error::InvalidTypeIDCellNum);
+        return Err(Error::TooManyTypeIdCell);
     }
 
     if !has_type_id_cell(0, Source::GroupInput) {
@@ -66,22 +65,8 @@ pub fn validate_type_id(type_id: [u8; 32]) -> Result<(), Error> {
 
         if ret != type_id {
             debug!("Invalid type ID!");
-            return Err(Error::TypeIDNotMatch);
+            return Err(Error::TypeIdNotMatch);
         }
     }
     Ok(())
-}
-
-/// Loading type ID from current script args, type_id must be at least 32 byte
-/// long.
-pub fn load_type_id_from_script_args(offset: usize) -> Result<[u8; 32], Error> {
-    let script = load_script()?;
-    let args = script.as_reader().args();
-    if offset + 32 > args.raw_data().len() {
-        debug!("Length of type id is incorrect!");
-        return Err(Error::ArgsLengthNotEnough);
-    }
-    let mut ret = [0; 32];
-    ret.copy_from_slice(&args.raw_data()[offset..offset + 32]);
-    Ok(ret)
 }

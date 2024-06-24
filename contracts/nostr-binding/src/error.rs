@@ -1,7 +1,5 @@
+use ckb_nostr_utils::error::Error as NostrError;
 use ckb_std::error::SysError;
-
-#[cfg(test)]
-extern crate alloc;
 
 #[repr(i8)]
 pub enum Error {
@@ -9,22 +7,17 @@ pub enum Error {
     ItemMissing,
     LengthNotEnough,
     Encoding,
-    // [Auth]
-    // Add customized errors here...
-    AuthFail,
-    // [type_id]
-    // There can only be at most one input and at most one output type ID cell
-    InvalidTypeIDCellNum,
-    // Type id does not match args
-    TypeIDNotMatch,
-    // Length of type id is incorrect
-    ArgsLengthNotEnough,
-    // [nostr]
-    InvalidEventLength,
-    NotAssetOwnerToMint,
-    AssetEventIdNotMatch,
-    InvalidAssetEventKind,
-    InvalidAssetMetaEventKind,
+    ValidationFail,
+    WitnessNotExisting,
+    WrongArgsLength,
+    InvalidPublicKey,
+    InvalidEventId,
+    InvalidSignatureFormat,
+    UnknownKey,
+    Json,
+    GlobalUniqueIdNotFound,
+    TooManyTypeIdCell,
+    TypeIdNotMatch,
 }
 
 impl From<SysError> for Error {
@@ -35,6 +28,19 @@ impl From<SysError> for Error {
             SysError::LengthNotEnough(_) => Self::LengthNotEnough,
             SysError::Encoding => Self::Encoding,
             SysError::Unknown(err_code) => panic!("unexpected sys error {}", err_code),
+        }
+    }
+}
+
+impl From<NostrError> for Error {
+    fn from(err: NostrError) -> Self {
+        match err {
+            NostrError::InvalidPublicKey => Self::InvalidPublicKey,
+            NostrError::InvalidEventId => Self::InvalidEventId,
+            NostrError::ValidationFail => Self::ValidationFail,
+            NostrError::InvalidSignatureFormat => Self::InvalidSignatureFormat,
+            NostrError::UnknownKey(_) => Self::UnknownKey,
+            NostrError::Json(_) => Self::Json,
         }
     }
 }
