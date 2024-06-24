@@ -128,7 +128,7 @@ pub fn blake160(data: &[u8]) -> [u8; 20] {
     ret
 }
 
-/// generate sighash_all. The witnesses should be filled with placeholders.
+/// generate sighash_all. The witnesses should be filled with placeholders before calling.
 pub fn generate_sighash_all(
     tx: &TransactionView,
     lock_indexes: Vec<usize>,
@@ -157,12 +157,12 @@ pub fn generate_sighash_all(
     // group
     if lock_indexes.len() > 1 {
         for i in 1..lock_indexes.len() {
-            let witness = tx.witnesses().get(lock_indexes[i]).unwrap();
-
-            blake2b.update(&(witness.len() as u64).to_le_bytes());
-            count += 8;
-            blake2b.update(&witness.raw_data());
-            count += witness.raw_data().len();
+            if let Some(witness) = tx.witnesses().get(lock_indexes[i]) {
+                blake2b.update(&(witness.len() as u64).to_le_bytes());
+                count += 8;
+                blake2b.update(&witness.raw_data());
+                count += witness.raw_data().len();
+            }
         }
     }
     let witness_len = tx.witnesses().len();

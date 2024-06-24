@@ -1,7 +1,12 @@
 extern crate hex;
 use crate::{blake160, sign_nostr_lock_script, unix_time_now, MAX_CYCLES};
 use ckb_testtool::{
-    ckb_types::{bytes::Bytes, core::TransactionBuilder, packed, prelude::*},
+    ckb_types::{
+        bytes::Bytes,
+        core::{TransactionBuilder, TransactionView},
+        packed::{self, Script},
+        prelude::*,
+    },
     context::Context,
 };
 use lazy_static::lazy_static;
@@ -20,10 +25,12 @@ lazy_static! {
         Keys::parse("a9e5f16529cbe055c1f7b6d928b980a2ee0cc0a1f07a8444b85b72b3f1d5c6ba").unwrap()
     };
 }
-
-#[test]
-fn test_unlock_nostr_lock() {
-    // deploy contract
+//
+// generate a template transaction:
+// 1 input cell locked by nostr lock script
+// 2 output cells
+//
+fn new_nostr_lock_template() -> (Context, TransactionView, Script) {
     let mut context = Context::default();
     context.set_capture_debug(false);
     let lock_out_point = context.deploy_cell(NOSTR_LOCK_BIN.clone());
@@ -69,9 +76,71 @@ fn test_unlock_nostr_lock() {
         .witness(Bytes::new().pack())
         .build();
     let tx = context.complete_tx(tx);
+    (context, tx, lock_script)
+}
 
+#[test]
+fn test_unlock_nostr_lock() {
+    let (context, tx, _) = new_nostr_lock_template();
     let created_at = unix_time_now();
     let tx = sign_nostr_lock_script(&KEY, created_at, vec![0], 1, tx);
+    let cycles = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect("pass verification");
+    println!("consume cycles: {}", cycles);
+}
+
+#[test]
+fn test_unlock_2_nostr_lock() {
+    let (mut context, tx, lock_script) = new_nostr_lock_template();
+    // prepare input cells
+    let input_out_point = context.create_cell(
+        packed::CellOutput::new_builder()
+            .capacity(1000u64.pack())
+            .lock(lock_script.clone())
+            .build(),
+        Bytes::new(),
+    );
+    let input = packed::CellInput::new_builder()
+        .previous_output(input_out_point.clone())
+        .build();
+
+    // append one cell to input
+    let tx = tx.as_advanced_builder().input(input).build();
+
+    let created_at = unix_time_now();
+    let tx = sign_nostr_lock_script(&KEY, created_at, vec![0, 1], 2, tx);
+    let cycles = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect("pass verification");
+    println!("consume cycles: {}", cycles);
+}
+
+#[test]
+fn test_unlock_nostr_lock_extra_witness() {
+    let (mut context, tx, lock_script) = new_nostr_lock_template();
+    // prepare input cells
+    let input_out_point = context.create_cell(
+        packed::CellOutput::new_builder()
+            .capacity(1000u64.pack())
+            .lock(lock_script.clone())
+            .build(),
+        Bytes::new(),
+    );
+    let input = packed::CellInput::new_builder()
+        .previous_output(input_out_point.clone())
+        .build();
+
+    // append one cell to input
+    // append extra large witnesses
+    let tx = tx
+        .as_advanced_builder()
+        .input(input)
+        .witnesses(vec![Bytes::from(vec![0u8; 1000]), Bytes::from(vec![0u8; 500_000])].pack())
+        .build();
+
+    let created_at = unix_time_now();
+    let tx = sign_nostr_lock_script(&KEY, created_at, vec![0, 1], 2, tx);
     let cycles = context
         .verify_tx(&tx, MAX_CYCLES)
         .expect("pass verification");

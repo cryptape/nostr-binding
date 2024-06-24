@@ -26,6 +26,7 @@ pub enum Error {
     PoWDifficulty,
     NonceNotFound,
     PubkeyNotFound,
+    WrongWitnessArgs,
 }
 
 impl From<SysError> for Error {

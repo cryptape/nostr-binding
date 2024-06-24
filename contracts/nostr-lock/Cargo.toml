@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-ckb-std = "0.15"
+ckb-std = { version = "0.15", features = ["allocator", "ckb-types", "calc-hash"]}
 hex = { version = "0.4", default-features = false, features = ["alloc"]}
 ckb-nostr-utils = { path = "../ckb-nostr-utils", version = "0.1.0" }
 blake2b-ref = "0.3.1"
