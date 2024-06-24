@@ -4,13 +4,13 @@ members = []
 
 
 [package]
-name = "tests"
+name = "ckb-nostr-tests"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 ckb-testtool = "0.12"
-serde_json = "1.0"
-nostr = "0.29.0"
-hex = "0.4"
-
+serde_json = "1.0.117"
+nostr = "0.32.1"
+hex = "0.4.3"
+lazy_static = "1.5.0"
