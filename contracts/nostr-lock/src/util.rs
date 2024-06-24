@@ -5,7 +5,7 @@ use ckb_std::ckb_constants::{InputField, Source};
 use ckb_std::ckb_types::bytes::Bytes;
 use ckb_std::ckb_types::prelude::*;
 use ckb_std::debug;
-use ckb_std::high_level::{load_tx_hash, load_witness_args, load_witness};
+use ckb_std::high_level::{load_tx_hash, load_witness, load_witness_args};
 use ckb_std::syscalls::{load_input_by_field, SysError};
 
 pub fn generate_sighash_all() -> Result<[u8; 32], Error> {
@@ -55,7 +55,6 @@ pub fn generate_sighash_all() -> Result<[u8; 32], Error> {
     blake2b_ctx.finalize(&mut msg);
     Ok(msg)
 }
-
 
 fn calculate_inputs_len() -> Result<usize, Error> {
     let mut temp = [0u8; 8];

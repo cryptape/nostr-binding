@@ -165,7 +165,7 @@ Here is an example:
 
 2. Serialize this dummy event and calculate its length. Actually, since all
    fields are in fixed length(`created_at` will be changed after 200 years),
-   this length is a static value.
+   this length is a static value(572).
 3. Fill `lock` in `WitnessArgs` with zeros, matching the calculated length above.
 4. Calculate the `sighash_all`.
 5. Assemble a new `event` with `sighash_all` and other information. Ensure the `created_at` field remains the same length.

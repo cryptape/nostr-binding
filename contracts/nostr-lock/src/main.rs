@@ -14,6 +14,7 @@ use ckb_std::ckb_constants::Source;
 use ckb_std::ckb_types::bytes::Bytes;
 use ckb_std::ckb_types::prelude::Unpack;
 use ckb_std::high_level::{load_script, load_witness_args};
+use ckb_std::syscalls::current_cycles;
 use ckb_std::{debug, default_alloc};
 use config::NONCE;
 use config::NOSTR_LOCK_CONTENT;
@@ -118,6 +119,11 @@ fn verify_key(event: &Event, schnorr_pubkey_hash: [u8; 20]) -> Result<(), Error>
         return Err(Error::PubkeyNotFound);
     }
     // rule 9
+    let start = current_cycles();
     event.verify_signature()?;
+    debug!(
+        "verify_signature costs {} k cycles",
+        (current_cycles() - start) / 1024
+    );
     Ok(())
 }

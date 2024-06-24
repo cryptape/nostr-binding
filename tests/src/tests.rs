@@ -132,11 +132,11 @@ fn test_unlock_nostr_lock_extra_witness() {
         .build();
 
     // append one cell to input
-    // append extra large witnesses
+    // append extra large witness
     let tx = tx
         .as_advanced_builder()
         .input(input)
-        .witnesses(vec![Bytes::from(vec![0u8; 1000]), Bytes::from(vec![0u8; 500_000])].pack())
+        .witnesses(vec![Bytes::new(), Bytes::from(vec![0u8; 500_000])].pack())
         .build();
 
     let created_at = unix_time_now();

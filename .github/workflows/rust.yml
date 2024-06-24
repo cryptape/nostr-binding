@@ -14,5 +14,5 @@ jobs:
     - name: Build
       run: make build
     - name: Run CI
-      run: cd tests && cargo test
+      run: cd tests && cargo test -- --nocapture
 
