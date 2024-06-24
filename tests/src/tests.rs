@@ -1,16 +1,11 @@
-use super::*;
+extern crate hex;
+use crate::{blake160, sign_nostr_lock_script, unix_time_now, MAX_CYCLES};
 use ckb_testtool::{
-    builtin::ALWAYS_SUCCESS,
-    ckb_hash::Blake2bBuilder,
-    ckb_types::{bytes::Bytes, core::TransactionBuilder, packed::{self, *}, prelude::*},
+    ckb_types::{bytes::Bytes, core::TransactionBuilder, packed, prelude::*},
     context::Context,
 };
-use nostr::prelude::*;
-
-extern crate hex;
-use hex::encode;
 use lazy_static::lazy_static;
-
+use nostr::prelude::*;
 
 lazy_static! {
     static ref NOSTR_LOCK_BIN: Bytes = {
@@ -30,72 +25,53 @@ lazy_static! {
 fn test_unlock_nostr_lock() {
     // deploy contract
     let mut context = Context::default();
-    let nostr_lock_out_point = context.deploy_cell(NOSTR_LOCK_BIN.clone());
-    // prepare cell deps
-    let nostr_lock_dep = CellDep::new_builder()
-        .out_point(nostr_lock_out_point.clone())
-        .build();
-    let cell_deps = vec![
-        nostr_lock_dep
-    ]
-    .pack();
-
+    context.set_capture_debug(false);
+    let lock_out_point = context.deploy_cell(NOSTR_LOCK_BIN.clone());
     let pubkey = KEY.public_key().to_bytes().to_vec();
+    let mut args = [0u8; 21];
+    let pubkey_hash = blake160(&pubkey);
+    (&mut args[1..21]).copy_from_slice(&pubkey_hash);
+
+    let args = Bytes::copy_from_slice(&args);
     let lock_script = context
-        .build_script(&nostr_lock_out_point, pubkey.into())
+        .build_script(&lock_out_point, args.into())
         .expect("lock script");
 
     // prepare input cells
     let input_out_point = context.create_cell(
-        CellOutput::new_builder()
+        packed::CellOutput::new_builder()
             .capacity(1000u64.pack())
             .lock(lock_script.clone())
             .build(),
         Bytes::new(),
     );
-    let input = CellInput::new_builder()
+    let input = packed::CellInput::new_builder()
         .previous_output(input_out_point.clone())
         .build();
 
     let outputs = vec![
-        CellOutput::new_builder()
+        packed::CellOutput::new_builder()
             .capacity(500u64.pack())
             .lock(lock_script.clone())
             .build(),
-        CellOutput::new_builder()
+        packed::CellOutput::new_builder()
             .capacity(500u64.pack())
             .lock(lock_script.clone())
             .build(),
     ];
 
-    // prepare output data
     let outputs_data = vec![Bytes::new(), Bytes::new()];
 
-    // build transaction
     let tx = TransactionBuilder::default()
-        .cell_deps(cell_deps)
         .input(input)
         .outputs(outputs)
         .outputs_data(outputs_data.pack())
+        .witness(Bytes::new().pack())
         .build();
+    let tx = context.complete_tx(tx);
 
-    // build nostr unlock event
-    let cell_tx_hash_tag = tx.hash().as_bytes().to_vec();
-    let tags = [
-        Tag::Generic(TagKind::from("ckb_tx_hash"), vec![encode(cell_tx_hash_tag)]),
-        Tag::event(EventId::from_slice(&asset_meta_event_id.to_vec()).unwrap()),
-    ];
-    let event: Event = EventBuilder::new(Kind::from(ASSET_UNLOCK_KIND as u64), "", tags)
-        .to_event(&KEY)
-        .unwrap();
-
-    // sign and add witness
-    let tx = tx
-        .as_advanced_builder()
-        .witness(witness.as_bytes().pack())
-        .build();
-
-    // run
+    let created_at = unix_time_now();
+    let tx = sign_nostr_lock_script(&KEY, created_at, vec![0], 1, tx);
     let cycles = context
         .verify_tx(&tx, MAX_CYCLES)
         .expect("pass verification");

@@ -1,7 +1,7 @@
-use crate::blake2b::new_blake2b;
+use crate::blake2b::{new_blake2b_stat, Blake2bStatistics};
 use crate::error::Error;
-use blake2b_ref::Blake2b;
 use ckb_std::ckb_constants::{InputField, Source};
+use ckb_std::debug;
 use ckb_std::high_level::load_tx_hash;
 use ckb_std::syscalls::{load_input_by_field, load_witness, SysError};
 
@@ -23,6 +23,7 @@ pub fn generate_sighash_all() -> Result<[u8; 32], Error> {
         return Err(Error::GenerateSighashAll);
     }
     let lock_length = u32::from_le_bytes(temp[16..20].try_into().unwrap()) as usize;
+    debug!("lock_length = {}", lock_length);
     if read_len < 20 + lock_length {
         return Err(Error::GenerateSighashAll);
     }
@@ -34,7 +35,7 @@ pub fn generate_sighash_all() -> Result<[u8; 32], Error> {
     let tx_hash = load_tx_hash()?;
 
     // Prepare sign message.
-    let mut blake2b_ctx = new_blake2b();
+    let mut blake2b_ctx = new_blake2b_stat();
     blake2b_ctx.update(&tx_hash);
     blake2b_ctx.update(&(witness_len as u64).to_le_bytes());
     blake2b_ctx.update(&temp[..read_len]);
@@ -47,8 +48,8 @@ pub fn generate_sighash_all() -> Result<[u8; 32], Error> {
     // Digest same group witnesses.
     let mut i = 1;
     loop {
-        let sysret = load_and_hash_witness(&mut blake2b_ctx, 0, i, Source::GroupInput, true);
-        match sysret {
+        let ret = load_and_hash_witness(&mut blake2b_ctx, 0, i, Source::GroupInput, true);
+        match ret {
             Err(SysError::IndexOutOfBound) => break,
             Err(x) => return Err(x.into()),
             Ok(_) => i += 1,
@@ -59,20 +60,21 @@ pub fn generate_sighash_all() -> Result<[u8; 32], Error> {
     let mut i = calculate_inputs_len()?;
 
     loop {
-        let sysret = load_and_hash_witness(&mut blake2b_ctx, 0, i, Source::Input, true);
-        match sysret {
+        let ret = load_and_hash_witness(&mut blake2b_ctx, 0, i, Source::Input, true);
+        match ret {
             Err(SysError::IndexOutOfBound) => break,
             Err(x) => return Err(x.into()),
             Ok(_) => i += 1,
         }
     }
     let mut msg = [0u8; 32];
+    debug!("Hashed {} bytes in sighash_all", blake2b_ctx.count());
     blake2b_ctx.finalize(&mut msg);
     Ok(msg)
 }
 
 fn load_and_hash_witness(
-    ctx: &mut Blake2b,
+    ctx: &mut Blake2bStatistics,
     start: usize,
     index: usize,
     source: Source,
@@ -106,8 +108,8 @@ fn calculate_inputs_len() -> Result<usize, Error> {
     let mut temp = [0u8; 8];
     let mut i = 0;
     loop {
-        let sysret = load_input_by_field(&mut temp, 0, i, Source::Input, InputField::Since);
-        match sysret {
+        let ret = load_input_by_field(&mut temp, 0, i, Source::Input, InputField::Since);
+        match ret {
             Err(SysError::IndexOutOfBound) => break,
             Err(x) => return Err(x.into()),
             Ok(_) => i += 1,
