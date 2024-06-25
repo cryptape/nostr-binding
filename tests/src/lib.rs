@@ -3,11 +3,15 @@ mod tests;
 
 use ::hex;
 use ckb_testtool::{
+    ckb_error::Error as CkbError,
     ckb_hash::{Blake2b, Blake2bBuilder},
     ckb_types::{bytes::Bytes, core::TransactionView, packed, prelude::*},
 };
 use nostr::prelude::*;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+    str::FromStr,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 pub const MAX_CYCLES: u64 = 70_000_000;
 pub const SIGHASH_ALL_TAG_NAME: &str = "ckb_sighash_all";
@@ -15,16 +19,28 @@ pub const NOSTR_LOCK_KIND: u16 = 23334;
 pub const SCRIPT_ARGS_LEN: usize = 33;
 pub const NOSTR_LOCK_CONTENT: &str = "Signing a CKB transaction\n\nIMPORTANT: Please verify the integrity and authenticity of connected Nostr client before signing this message\n";
 pub const NONCE: &str = "nonce";
+pub const GLOBAL_UNIQUE_ID_TAG_NAME: &str = "ckb_global_unique_id";
+
+#[derive(Clone, PartialEq)]
+pub enum TestSchema {
+    WrongPubkey,
+    WrongSignature,
+    WrongId,
+    WrongGlobalUniqueId,
+    WrongGlobalUniqueId2,
+    Normal,
+}
 
 ///
 /// sign a transaction for a nostr lock script, with key, timestamp and witness index
 ///
-pub fn sign_nostr_lock_script(
+pub fn sign_lock_script(
     key: &Keys,
     created_at: u64,
     lock_indexes: Vec<usize>,
     input_len: usize,
     tx: TransactionView,
+    schema: TestSchema,
 ) -> TransactionView {
     assert!(lock_indexes.len() > 0);
     let dummy_sighash_all = [0u8; 32];
@@ -85,6 +101,20 @@ pub fn sign_nostr_lock_script(
         .custom_created_at(created_at.into())
         .to_event(key)
         .unwrap();
+    let event = if schema == TestSchema::WrongSignature {
+        Event::new(
+            event.id(),
+            event.author(),
+            event.created_at(),
+            event.kind(),
+            event.clone().into_iter_tags(),
+            event.content(),
+            // an invalid signature
+            Signature::from_str("a9e5f16529cbe055c1f7b6d928b980a2ee0cc0a1f07a8444b85b72b3f1d5c6baa9e5f16529cbe055c1f7b6d928b980a2ee0cc0a1f07a8444b85b72b3f1d5c6ba").unwrap()
+        )
+    } else {
+        event
+    };
     let event_json = event.as_json();
     println!("event = {}", event_json);
     println!("event_length = {}", event_json.len());
@@ -110,6 +140,26 @@ pub fn sign_nostr_lock_script(
         .set_witnesses(signed_witness)
         .build();
     tx
+}
+
+///
+/// while minting, an valid `event` must be provided
+///
+pub fn type_script_mint(
+    key: &Keys,
+    created_at: u64,
+    content: String,
+    global_unique_id: [u8; 32],
+) -> (Bytes, [u8; 32]) {
+    let tags = [Tag::custom(
+        TagKind::from(GLOBAL_UNIQUE_ID_TAG_NAME),
+        vec![hex::encode(global_unique_id)],
+    )];
+    let event: Event = EventBuilder::new(Kind::from(0), content, tags)
+        .custom_created_at(created_at.into())
+        .to_event(key)
+        .unwrap();
+    (event.as_json().into(), event.id().to_bytes())
 }
 
 pub fn new_blake2b() -> Blake2b {
@@ -189,4 +239,14 @@ pub fn unix_time_now() -> u64 {
             panic!("duration_since")
         }
     }
+}
+
+pub fn assert_script_error(err: CkbError, err_code: i8) {
+    let error_string = err.to_string();
+    assert!(
+        error_string.contains(format!("error code {} ", err_code).as_str()),
+        "error_string: {}, expected_error_code: {}",
+        error_string,
+        err_code
+    );
 }

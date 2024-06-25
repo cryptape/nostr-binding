@@ -8,7 +8,7 @@ mod type_id;
 use ckb_nostr_utils::event::Event;
 use ckb_std::default_alloc;
 ckb_std::entry!(program_entry);
-default_alloc!(4 * 1024, 1024 * 1024, 64);
+default_alloc!(4 * 1024, 1400 * 1024, 64);
 
 use ckb_std::syscalls::current_cycles;
 use ckb_std::{
