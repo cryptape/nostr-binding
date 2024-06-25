@@ -14,18 +14,19 @@ pub enum Error {
     KindMismatched,
     ContentMismatched,
     GenerateSighashAll,
-    InvalidScriptArgs,
+    InvalidScriptArgs = 15,
     InvalidPublicKey,
     InvalidEventId,
     ValidationFail,
     InvalidSignatureFormat,
-    UnknownKey,
+    UnknownKey = 20,
     Json,
     PubkeyNotEmpty,
     WrongTargetDifficulty,
     PoWDifficulty,
-    NonceNotFound,
+    NonceNotFound = 25,
     PubkeyNotFound,
+    WrongWitnessArgs,
 }
 
 impl From<SysError> for Error {

@@ -7,12 +7,15 @@ mod error;
 mod util;
 
 use alloc::format;
+use alloc::string::String;
+use blake2b::blake160;
 use ckb_nostr_utils::event::Event;
 use ckb_std::ckb_constants::Source;
 use ckb_std::ckb_types::bytes::Bytes;
 use ckb_std::ckb_types::prelude::Unpack;
-use ckb_std::default_alloc;
 use ckb_std::high_level::{load_script, load_witness_args};
+use ckb_std::syscalls::current_cycles;
+use ckb_std::{debug, default_alloc};
 use config::NONCE;
 use config::NOSTR_LOCK_CONTENT;
 use config::NOSTR_LOCK_KIND;
@@ -21,7 +24,7 @@ use error::Error;
 use util::generate_sighash_all;
 
 ckb_std::entry!(program_entry);
-default_alloc!(4 * 1024, 1024 * 1024, 64);
+default_alloc!(4 * 1024, 1400 * 1024, 64);
 
 pub fn program_entry() -> i8 {
     match entry() {
@@ -39,10 +42,12 @@ pub fn entry() -> Result<(), Error> {
 
     let sighash_all = generate_sighash_all()?;
     let sighash_all_hex = hex::encode(&sighash_all);
+    debug!("sighash_all = {}", sighash_all_hex);
 
     let witness_args = load_witness_args(0, Source::GroupInput)?;
     let lock: Bytes = witness_args.lock().to_opt().unwrap().unpack();
     let event = Event::from_json(lock.as_ref())?;
+    debug!("event = {}", String::from_utf8_lossy(lock.as_ref()));
 
     // rule 1
     let found = event.tags().into_iter().any(|e| {
@@ -63,16 +68,20 @@ pub fn entry() -> Result<(), Error> {
         return Err(Error::ContentMismatched);
     }
 
-    let schnorr_pubkey: [u8; 32] = args[0..32].try_into().unwrap();
-    let pow_difficulty = args[32];
+    let pow_difficulty = args[0];
+    let schnorr_pubkey_hash: [u8; 20] = args[1..21].try_into().unwrap();
     if pow_difficulty == 0 {
-        verify_key(&event, schnorr_pubkey)
+        verify_key(&event, schnorr_pubkey_hash)
     } else {
-        verify_pow(&event, pow_difficulty, schnorr_pubkey)
+        verify_pow(&event, pow_difficulty, schnorr_pubkey_hash)
     }
 }
 
-fn verify_pow(event: &Event, pow_difficulty: u8, schnorr_pubkey: [u8; 32]) -> Result<(), Error> {
+fn verify_pow(
+    event: &Event,
+    pow_difficulty: u8,
+    schnorr_pubkey_hash: [u8; 20],
+) -> Result<(), Error> {
     let pow_difficulty_str = format!("{}", pow_difficulty);
 
     let mut validated = false;
@@ -94,7 +103,7 @@ fn verify_pow(event: &Event, pow_difficulty: u8, schnorr_pubkey: [u8; 32]) -> Re
         }
     }
     // rule 7
-    if schnorr_pubkey != [0u8; 32] {
+    if schnorr_pubkey_hash != [0u8; 20] {
         return Err(Error::PubkeyNotEmpty);
     }
     if validated {
@@ -104,13 +113,17 @@ fn verify_pow(event: &Event, pow_difficulty: u8, schnorr_pubkey: [u8; 32]) -> Re
     }
 }
 
-fn verify_key(event: &Event, schnorr_pubkey: [u8; 32]) -> Result<(), Error> {
-    let schnorr_pubkey_hex = hex::encode(&schnorr_pubkey);
+fn verify_key(event: &Event, schnorr_pubkey_hash: [u8; 20]) -> Result<(), Error> {
     // rule 8
-    if event.author().to_hex() != schnorr_pubkey_hex {
+    if blake160(event.author().as_slice()) != schnorr_pubkey_hash {
         return Err(Error::PubkeyNotFound);
     }
     // rule 9
+    let start = current_cycles();
     event.verify_signature()?;
+    debug!(
+        "verify_signature costs {} k cycles",
+        (current_cycles() - start) / 1024
+    );
     Ok(())
 }

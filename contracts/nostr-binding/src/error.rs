@@ -7,17 +7,18 @@ pub enum Error {
     ItemMissing,
     LengthNotEnough,
     Encoding,
-    ValidationFail,
+    // nostr binding type script error code starts from 50
+    ValidationFail = 50,
     WitnessNotExisting,
     WrongArgsLength,
     InvalidPublicKey,
     InvalidEventId,
-    InvalidSignatureFormat,
+    InvalidSignatureFormat = 55,
     UnknownKey,
     Json,
     GlobalUniqueIdNotFound,
     TooManyTypeIdCell,
-    TypeIdNotMatch,
+    TypeIdNotMatch = 60,
 }
 
 impl From<SysError> for Error {

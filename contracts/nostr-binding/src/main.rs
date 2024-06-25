@@ -8,10 +8,12 @@ mod type_id;
 use ckb_nostr_utils::event::Event;
 use ckb_std::default_alloc;
 ckb_std::entry!(program_entry);
-default_alloc!(4 * 1024, 1024 * 1024, 64);
+default_alloc!(4 * 1024, 1400 * 1024, 64);
 
+use ckb_std::syscalls::current_cycles;
 use ckb_std::{
     ckb_constants::Source,
+    debug,
     high_level::{load_script, load_witness_args},
 };
 
@@ -60,7 +62,12 @@ fn entry() -> Result<(), Error> {
         if !found {
             return Err(Error::GlobalUniqueIdNotFound);
         }
+        let start = current_cycles();
         event.verify_signature()?;
+        debug!(
+            "verify_signature costs {} k cycles",
+            (current_cycles() - start) / 1024
+        );
     }
 
     Ok(())

@@ -13,12 +13,13 @@ A nostr lock script has the following structure:
 ```
 Code hash: nostr lock script code hash
 Hash type: nostr lock script hash type
-Args: <schnorr pubkey, 32 bytes> <PoW difficulty, 1 byte>
+Args:  <PoW difficulty, 1 byte> <schnorr pubkey hash, 20 bytes>
 ```
 
-When the PoW difficulty is zero, the Schnorr pubkey is used to unlock. When the
-PoW difficulty is non-zero, the Schnorr pubkey is not used and should be all
-zero, and another unlock method is used. More details will be explained below.
+When the PoW difficulty is zero, the Schnorr pubkey hash is used to unlock. When
+the PoW difficulty is non-zero, the Schnorr pubkey hash is not used and should
+be all zero, and another unlock method is used. More details will be explained
+below.
 
 
 ## Witness
@@ -33,6 +34,12 @@ lowercase letters can be used in hexadecimal strings. For example, "00" and
 "ffee" are valid hexadecimal strings, while "FFEE" and "hello world" are not
 valid. This convention is applied throughout this specification.
 
+## ckbhash
+CKB uses blake2b as the default hash algorithm. We use ckbhash to denote the
+blake2b hash function with following configuration:
+
+output digest size: 32
+personalization: ckb-default-hash
 
 ## Unlocking
 There are 2 methods to unlock nostr lock script: by key(PoW difficulty is zero)
@@ -115,7 +122,9 @@ For each mining attempt, only mutate the long string while keeping the length un
 ### Unlocking by Key
 When PoW difficulty is zero, this unlocking method is used. 
 
-**Rule 8**: The `pubkey` field in `event` should be equal to pubkey in script args in hexadecimal string.
+**Rule 8**: The ckbhash of binary format of `pubkey` field in `event` should be
+equal to schnorr pubkey hash in script args. The `pubkey` in hexadecimal string
+should be converted into binary first.
 
 **Rule 9**: The `sig` field, along with the `pubkey` and `id` fields in the
 `event`, can be validated via Schnorr verification.
@@ -154,7 +163,9 @@ Here is an example:
 }
 ```
 
-2. Serialize this dummy event and calculate its length.
+2. Serialize this dummy event and calculate its length. Actually, since all
+   fields are in fixed length(`created_at` will be changed after 200 years),
+   this length is a static value(572).
 3. Fill `lock` in `WitnessArgs` with zeros, matching the calculated length above.
 4. Calculate the `sighash_all`.
 5. Assemble a new `event` with `sighash_all` and other information. Ensure the `created_at` field remains the same length.
@@ -178,7 +189,7 @@ Inputs:
         Type: <...>
         Lock:
             code_hash: <nostr lock script code hash>
-            args: <schnorr pubkey, 0000...00><PoW difficulty, 24>
+            args: <PoW difficulty, 24><schnorr pubkey hash, 0000...00>
 Outputs:
     <vec> Any cell
 Witnesses:
@@ -214,7 +225,7 @@ Inputs:
         Type: <...>
         Lock:
             code_hash: <nostr lock script code hash>
-            args: <schnorr pubkey, dead...beef><PoW difficulty, 0>
+            args: <PoW difficulty, 0><schnorr pubkey hash, aaaa...bbbb, equal to ckbhash(dead...beef)>
 Outputs:
     <vec> Any cell
 Witnesses:
@@ -222,7 +233,7 @@ Witnesses:
       Lock: >
         {
             "id": "0011...eeff",
-            "pubkey": <schnorr pubkey, "dead...beef">,
+            "pubkey": <schnorr pubkey, dead...beef>,
             "created_at": <unix timestamp in seconds>,
             "kind": 23334,
             "tags": [
