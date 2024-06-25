@@ -124,7 +124,7 @@ pub fn sign_lock_script(
         .enumerate()
         .map(|(index, witness)| {
             if index == witness_index {
-                let lock: Bytes = Bytes::copy_from_slice(event_json.as_bytes());
+                let lock: Bytes = event_json.clone().into();
                 let witness: Bytes = witness.unpack();
                 let witness_args = packed::WitnessArgs::new_unchecked(witness);
                 assert_eq!(witness_args.lock().to_opt().unwrap().len(), lock.len());
@@ -142,6 +142,124 @@ pub fn sign_lock_script(
     tx
 }
 
+///
+/// sign a transaction for a nostr lock script with PoW
+///
+pub fn sign_pow_lock_script(
+    key: &Keys,
+    created_at: u64,
+    lock_indexes: Vec<usize>,
+    input_len: usize,
+    pow_difficult: u8,
+    tx: TransactionView,
+    _schema: TestSchema,
+) -> TransactionView {
+    // reserve nonce to a fixed length string(length = 10)
+    let tags = [
+        Tag::custom(
+            TagKind::from(SIGHASH_ALL_TAG_NAME),
+            vec![hex::encode([0u8; 32])],
+        ),
+        Tag::custom(
+            TagKind::from("nonce"),
+            vec![String::from("0000000000"), format!("{}", pow_difficult)],
+        ),
+    ];
+    let created_at_str = format!("{}", created_at);
+    assert_eq!(created_at_str.len(), 10);
+    let dummy_event: Event =
+        EventBuilder::new(Kind::from(NOSTR_LOCK_KIND), NOSTR_LOCK_CONTENT, tags)
+            .custom_created_at(created_at.into())
+            .to_event(key)
+            .unwrap();
+    let dummy_json = dummy_event.as_json();
+    println!("dummy_json = {}", dummy_json);
+    let dummy_length = dummy_json.len();
+    println!("dummy_length = {}", dummy_length);
+    let witness_index = lock_indexes[0];
+    // make a dummy witness to generate correct sighash_all
+    let dummy_witness: Vec<packed::Bytes> = tx
+        .witnesses()
+        .into_iter()
+        .enumerate()
+        .map(|(index, witness)| {
+            if index == witness_index {
+                let witness: Bytes = witness.unpack();
+                let witness_args = if witness.len() == 0 {
+                    packed::WitnessArgs::default()
+                } else {
+                    packed::WitnessArgs::new_unchecked(witness)
+                };
+                let dummy_lock: Bytes = vec![0u8; dummy_length].into();
+                let witness_args = witness_args
+                    .as_builder()
+                    .lock(Some(dummy_lock).pack())
+                    .build();
+                witness_args.as_bytes().pack()
+            } else {
+                witness
+            }
+        })
+        .collect();
+    let tx = tx
+        .as_advanced_builder()
+        .set_witnesses(dummy_witness)
+        .build();
+    let sighash_all = generate_sighash_all(&tx, lock_indexes, input_len);
+    println!("sighash_all = {}", hex::encode(&sighash_all));
+
+    let event_json: String;
+    let mut nonce = 0;
+    // mining
+    loop {
+        let tags = [
+            Tag::custom(
+                TagKind::from(SIGHASH_ALL_TAG_NAME),
+                vec![hex::encode(sighash_all)],
+            ),
+            Tag::custom(
+                TagKind::from("nonce"),
+                vec![format!("{:010}", nonce), format!("{}", pow_difficult)],
+            ),
+        ];
+        let event: Event = EventBuilder::new(Kind::from(NOSTR_LOCK_KIND), NOSTR_LOCK_CONTENT, tags)
+            .custom_created_at(created_at.into())
+            .to_event(key)
+            .unwrap();
+        if event.id().check_pow(pow_difficult) {
+            event_json = event.as_json();
+            break;
+        }
+        nonce += 1;
+        if nonce % 10000 == 0 {
+            println!("mining progress {}", nonce);
+        }
+    }
+    println!("event = {}", event_json);
+    println!("event_length = {}", event_json.len());
+    let signed_witness: Vec<packed::Bytes> = tx
+        .witnesses()
+        .into_iter()
+        .enumerate()
+        .map(|(index, witness)| {
+            if index == witness_index {
+                let lock: Bytes = event_json.clone().into();
+                let witness: Bytes = witness.unpack();
+                let witness_args = packed::WitnessArgs::new_unchecked(witness);
+                assert_eq!(witness_args.lock().to_opt().unwrap().len(), lock.len());
+                let witness_args = witness_args.as_builder().lock(Some(lock).pack()).build();
+                witness_args.as_bytes().pack()
+            } else {
+                witness
+            }
+        })
+        .collect();
+    let tx = tx
+        .as_advanced_builder()
+        .set_witnesses(signed_witness)
+        .build();
+    tx
+}
 ///
 /// while minting, an valid `event` must be provided
 ///
