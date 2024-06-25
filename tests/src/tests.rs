@@ -1,7 +1,7 @@
 extern crate hex;
 use crate::{
-    assert_script_error, blake160, new_blake2b, sign_lock_script, type_script_mint, unix_time_now,
-    TestSchema, MAX_CYCLES,
+    assert_script_error, blake160, new_blake2b, sign_lock_script, sign_pow_lock_script,
+    type_script_mint, unix_time_now, TestSchema, MAX_CYCLES,
 };
 use ckb_testtool::{
     builtin::ALWAYS_SUCCESS,
@@ -168,6 +168,60 @@ fn new_lock_template(schema: TestSchema) -> (Context, TransactionView, Script) {
     (context, tx, lock_script)
 }
 
+//
+// generate a template transaction:
+// 1 input cell locked by nostr lock script. Unlocked by PoW method.
+// 2 output cells
+//
+fn new_lock_pow_template(_schema: TestSchema) -> (Context, TransactionView, u8) {
+    let pow_difficult = 3;
+    let mut context = Context::default();
+    context.set_capture_debug(false);
+    let lock_out_point = context.deploy_cell(NOSTR_LOCK_BIN.clone());
+    let mut args = [0u8; 21];
+    // Set PoW difficulty
+    args[0] = pow_difficult;
+
+    let args = Bytes::copy_from_slice(&args);
+    let lock_script = context
+        .build_script(&lock_out_point, args.into())
+        .expect("lock script");
+
+    // prepare input cells
+    let input_out_point = context.create_cell(
+        packed::CellOutput::new_builder()
+            .capacity(1000u64.pack())
+            .lock(lock_script.clone())
+            .build(),
+        Bytes::new(),
+    );
+    let input = packed::CellInput::new_builder()
+        .previous_output(input_out_point.clone())
+        .build();
+
+    let outputs = vec![
+        packed::CellOutput::new_builder()
+            .capacity(500u64.pack())
+            .lock(lock_script.clone())
+            .build(),
+        packed::CellOutput::new_builder()
+            .capacity(500u64.pack())
+            .lock(lock_script.clone())
+            .build(),
+    ];
+
+    let outputs_data = vec![Bytes::new(), Bytes::new()];
+
+    let tx = TransactionBuilder::default()
+        .input(input)
+        .outputs(outputs)
+        .outputs_data(outputs_data.pack())
+        .witness(Bytes::new().pack())
+        .build();
+    let tx = context.complete_tx(tx);
+    (context, tx, pow_difficult)
+}
+
 #[test]
 fn test_unlock_lock() {
     let (context, tx, _) = new_lock_template(TestSchema::Normal);
@@ -177,6 +231,42 @@ fn test_unlock_lock() {
         .verify_tx(&tx, MAX_CYCLES)
         .expect("pass verification");
     println!("consume cycles: {}", cycles);
+}
+
+#[test]
+fn test_unlock_lock_pow() {
+    let (context, tx, pow_difficulty) = new_lock_pow_template(TestSchema::Normal);
+    let created_at = unix_time_now();
+    let tx = sign_pow_lock_script(
+        &KEY,
+        created_at,
+        vec![0],
+        1,
+        pow_difficulty,
+        tx,
+        TestSchema::Normal,
+    );
+    let cycles = context
+        .verify_tx(&tx, MAX_CYCLES)
+        .expect("pass verification");
+    println!("consume cycles: {}", cycles);
+}
+
+#[test]
+fn test_unlock_lock_pow_failed_difficulty() {
+    let (context, tx, pow_difficulty) = new_lock_pow_template(TestSchema::Normal);
+    let created_at = unix_time_now();
+    let tx = sign_pow_lock_script(
+        &KEY,
+        created_at,
+        vec![0],
+        1,
+        pow_difficulty - 1,
+        tx,
+        TestSchema::Normal,
+    );
+    let result = context.verify_tx(&tx, MAX_CYCLES);
+    assert_script_error(result.err().unwrap(), 23);
 }
 
 #[test]
