@@ -7,6 +7,14 @@ The Nostr lock script is designed for interoperability with
 transaction signing methods used by Nostr. Additionally, it can support
 proof-of-work mechanics from Nostr to ensure a fair launch.
 
+## `ckbhash`
+CKB uses blake2b as the default hash algorithm. We use `ckbhash` to denote the
+blake2b hash function with following configuration:
+
+output digest size: 32
+personalization: ckb-default-hash
+
+The `blake160` function is defined to return the leading 20 bytes of the `ckbhash` result.
 
 ## Lock Script
 A nostr lock script has the following structure:
@@ -16,10 +24,11 @@ Hash type: nostr lock script hash type
 Args:  <PoW difficulty, 1 byte> <schnorr pubkey hash, 20 bytes>
 ```
 
-When the PoW difficulty is zero, the Schnorr pubkey hash is used to unlock. When
-the PoW difficulty is non-zero, the Schnorr pubkey hash is not used and should
-be all zero, and another unlock method is used. More details will be explained
-below.
+The schnorr pubkey hash is calculated from 32 bytes pubkey via `blake160`
+function. When the PoW difficulty is zero, the Schnorr pubkey hash is used to
+unlock. When the PoW difficulty is non-zero, the Schnorr pubkey hash is not used
+and should be all zero, and another unlock method is used. More details will be
+explained below.
 
 
 ## Witness
@@ -34,20 +43,11 @@ lowercase letters can be used in hexadecimal strings. For example, "00" and
 "ffee" are valid hexadecimal strings, while "FFEE" and "hello world" are not
 valid. This convention is applied throughout this specification.
 
-## ckbhash
-CKB uses blake2b as the default hash algorithm. We use ckbhash to denote the
-blake2b hash function with following configuration:
-
-output digest size: 32
-personalization: ckb-default-hash
-
 ## Unlocking
 There are 2 methods to unlock nostr lock script: by key(PoW difficulty is zero)
 or by PoW difficulty(PoW difficulty is non-zero).
 
-A 32-byte `sighash_all` message can be calculated via [blake2b hash
-function](https://github.com/nervosnetwork/rfcs/blob/master/rfcs/0022-transaction-structure/0022-transaction-structure.md#crypto-primitives)
-with following data:
+A 32-byte `sighash_all` message can be calculated via `ckbhash` with following data:
 
 * Transaction hash
 * Witness length and content in same script group covered by inputs, excluding lock field
@@ -76,7 +76,7 @@ The first element of the tag array is referred to as the tag name or key and the
 second as the tag value.
 
 **Rule 1**: A tag key with "ckb_sighash_all" must be present. Its corresponding
-tag value must be equal to `sighash_all` in hexadecimal format.
+tag value must be equal to `sighash_all` in hexadecimal string format.
 
 Here is an example of such tag:
 ```json
@@ -88,7 +88,9 @@ Here is an example of such tag:
 
 **Rule 3**: The `kind` in the `event` should be equal to 23334. The `content` in
 the `event` should be identical to following fixed string:
+```
 "Signing a CKB transaction\n\nIMPORTANT: Please verify the integrity and authenticity of connected Nostr client before signing this message\n"
+```
 
 These 3 rules(1,2,3) should be followed by both of the two unlocking methods
 described below.
@@ -98,7 +100,7 @@ When PoW difficulty is non-zero, this unlocking method is used. It follows
 [NIP-13](https://github.com/nostr-protocol/nips/blob/master/13.md). 
 
 **Rule 4**: A tag key with `nonce` must be present. Its corresponding tag value
-can be any string.
+can be any string. This tag value will be mutated to mimic mining behavior.
 
 **Rule 5**: The third entry to the `nonce` tag should contain the PoW
 difficulty in decimal string described in script args.
@@ -122,7 +124,7 @@ For each mining attempt, only mutate the long string while keeping the length un
 ### Unlocking by Key
 When PoW difficulty is zero, this unlocking method is used. 
 
-**Rule 8**: The ckbhash of binary format of `pubkey` field in `event` should be
+**Rule 8**: The blake160 of binary format of `pubkey` field in `event` should be
 equal to schnorr pubkey hash in script args. The `pubkey` in hexadecimal string
 should be converted into binary first.
 
