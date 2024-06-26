@@ -1,5 +1,7 @@
 /build
 /target
 /tests/failed_txs
+/tests/target
 node_modules
 .DS_Store
+llvm.sh
