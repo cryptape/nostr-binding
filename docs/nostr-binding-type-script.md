@@ -4,6 +4,13 @@
 
 The Nostr binding type script enables the binding between a Nostr Note and a CKB cell. <TODO>
 
+## `ckbhash`
+CKB uses blake2b as the default hash algorithm. We use `ckbhash` to denote the
+blake2b hash function with following configuration:
+
+output digest size: 32
+personalization: ckb-default-hash
+
 ## Type ID
 [Type ID](https://github.com/nervosnetwork/rfcs/blob/master/rfcs/0022-transaction-structure/0022-transaction-structure.md#type-id) is a mechanic widely used in CKB. Upon creation, it follows this rule:
 > Create a transaction which uses any out point as tx.inputs[0] and has a output
@@ -12,7 +19,8 @@ The Nostr binding type script enables the binding between a Nostr Note and a CKB
 > used once as an input, tx.inputs[0] and thus the new type id must be different
 > in each creation transaction.
 
-The hash of `tx.inputs[0]` and its output index can be referred to as the global unique ID.
+The hash of `tx.inputs[0]` and its output index via `ckbhash` can be referred to
+as the global unique ID.
 
 ## Script
 A nostr binding type script has the following structure:
