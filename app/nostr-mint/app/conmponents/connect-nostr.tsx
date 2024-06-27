@@ -128,7 +128,7 @@ export function ConnectNostr() {
           ? `${nostrPubkey.slice(0, 8)}..${nostrPubkey.slice(-4)}`
           : "Connect Nostr"}
       </button>
-      {ckbAddress && <div onClick={()=>copy(ckbAddress, {onCopy: (_) => alert("address copied: " + ckbAddress)})}>{ckbAddress.slice(0, 8)}..{ckbAddress.slice(-4)}</div>}
+      {ckbAddress && <div onClick={()=>copy(ckbAddress, {onCopy: (_) => console.log("address copied: " + ckbAddress)})}>{ckbAddress.slice(0, 8)}..{ckbAddress.slice(-4)}</div>}
       {ckbAddress && balance != null && <div>{balance} CKB</div>}
     </div>
   );

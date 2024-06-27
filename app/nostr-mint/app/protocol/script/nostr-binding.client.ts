@@ -70,13 +70,6 @@ export class NostrBinding {
           index: lumosConfig.SCRIPTS.NOSTR_BINDING!.INDEX,
         },
         depType: lumosConfig.SCRIPTS.NOSTR_BINDING!.DEP_TYPE,
-      },
-      {
-        outPoint: {
-          txHash: lumosConfig.SCRIPTS.AUTH!.TX_HASH,
-          index: lumosConfig.SCRIPTS.AUTH!.INDEX,
-        },
-        depType: lumosConfig.SCRIPTS.AUTH!.DEP_TYPE,
       }
     );
     return cellDeps;

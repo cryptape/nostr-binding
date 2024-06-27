@@ -1,6 +1,7 @@
-import { CellDep, helpers } from "@ckb-lumos/lumos";
+import { CellDep, helpers, utils } from "@ckb-lumos/lumos";
 import { PublicKey } from "@rust-nostr/nostr-sdk";
 import offCKBConfig from "offckb.config";
+import { bytes } from "@ckb-lumos/codec";
 
 const lumosConfig = offCKBConfig.lumosConfig;
 
@@ -14,7 +15,9 @@ export class NostrLock {
       throw new Error("nostr lock script not found. have you deploy it?");
     }
 
-    const lockArgs = "0x" + ownerPubkey.toHex();
+    const hasher = new utils.CKBHasher();
+    hasher.update(bytes.bytify("0x" + ownerPubkey.toHex()));
+    const lockArgs =  "0x00" + hasher.digestHex().slice(2, 42);
     return {
       codeHash: lumosConfig.SCRIPTS.NOSTR_LOCK!.CODE_HASH,
       hashType: lumosConfig.SCRIPTS.NOSTR_LOCK!.HASH_TYPE,
@@ -56,14 +59,7 @@ export class NostrLock {
           index: lumosConfig.SCRIPTS.NOSTR_LOCK!.INDEX,
         },
         depType: lumosConfig.SCRIPTS.NOSTR_LOCK!.DEP_TYPE,
-      },
-      {
-        outPoint: {
-          txHash: lumosConfig.SCRIPTS.AUTH!.TX_HASH,
-          index: lumosConfig.SCRIPTS.AUTH!.INDEX,
-        },
-        depType: lumosConfig.SCRIPTS.AUTH!.DEP_TYPE,
-      },
+      }
     ];
     return cellDeps;
   }

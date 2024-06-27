@@ -1,6 +1,6 @@
 export enum TagName {
-  cellTypeId = "cell_type_id",
-  ckbTxHash = "ckb_tx_hash",
+  ckbGlobalUniqueId = "ckb_global_unique_id",
+  ckbSigHashAll = "ckb_sighash_all",
 
   // asset payload
   name = "name",

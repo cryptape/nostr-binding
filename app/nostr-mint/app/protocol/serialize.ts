@@ -27,7 +27,16 @@ function numberToLE8Bytes(number: number): Uint8Array {
   return new Uint8Array(buffer);
 }
 
-function jsonStringToBytes(jsonString: string): Uint8Array {
+export function jsonStringToBytes(jsonString: string): Uint8Array {
+  const buffer = Buffer.from(jsonString, 'utf-8');
+
+  const arrayBuffer = new ArrayBuffer(buffer.length);
+  const view = new Uint8Array(arrayBuffer);
+  for (let i = 0; i < buffer.length; ++i) {
+    view[i] = buffer[i];
+  }
+  return view;
+
   const encoder = new TextEncoder();
   const encodedString = encoder.encode(jsonString);
   return encodedString;

@@ -33,9 +33,7 @@ export default function Index() {
       <ul>
         <li>
           <MintButton setAssetEvent={setAssetEvent} setResult={setResult} />
-          {assetEvent && (
-            <UnlockButton assetEvent={assetEvent} setResult={setResult} />
-          )}
+          <UnlockButton assetEvent={assetEvent} setResult={setResult} />
         </li>
         <li>
           <AssetButton assetEvent={assetEvent} setResult={setResult} />

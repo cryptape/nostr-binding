@@ -39,7 +39,7 @@ export async function collectCell(ckbAddress: string, neededCapacity: BI) {
 
 export async function collectTypeCell(
   ckbAddress: string,
-  type: Script,
+  type: Script | undefined,
   total: number
 ) {
   const fromScript = helpers.parseAddress(ckbAddress, {
@@ -47,7 +47,7 @@ export async function collectTypeCell(
   });
 
   const collected: Cell[] = [];
-  const collector = indexer.collector({ lock: fromScript, type });
+  const collector = indexer.collector({ lock: fromScript, type, argsLen: 21 });
   for await (const cell of collector.collect()) {
     collected.push(cell);
     if (collected.length >= total) break;
@@ -63,6 +63,7 @@ export async function collectTypeCell(
 export async function capacityOf(address: string): Promise<BI> {
   const collector = indexer.collector({
     lock: helpers.parseAddress(address),
+    argsLen: 21,
   });
 
   let balance = BI.from(0);

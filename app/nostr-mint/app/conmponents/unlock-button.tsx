@@ -10,12 +10,12 @@ import {
   buildAlwaysSuccessLock,
   computeTransactionHash,
 } from "~/protocol/ckb-helper.client";
-import { Event } from "@rust-nostr/nostr-sdk";
+import { Event, EventBuilder } from "@rust-nostr/nostr-sdk";
 import { NostrBinding } from "~/protocol/script/nostr-binding.client";
 import offCKBConfig from "offckb.config";
 
 export interface UnlockButtonProp {
-  assetEvent: Event;
+  assetEvent: Event | undefined;
   setResult: (res: string) => void;
 }
 
@@ -24,6 +24,8 @@ export function UnlockButton({ setResult, assetEvent }: UnlockButtonProp) {
   const nostrSigner = context.nostrSigner!;
 
   const onUnlock = async () => {
+    if(assetEvent == null)return;
+
     const eventId = assetEvent.id.toHex();
     const typeIdTag = assetEvent.tags.find(
       (t) => t.asVec()[0] === "cell_type_id"
@@ -56,34 +58,52 @@ export function UnlockButton({ setResult, assetEvent }: UnlockButtonProp) {
       }) 
     );
 
-    const tx = helpers.createTransactionFromSkeleton(txSkeleton);
-    const txHash = computeTransactionHash(tx).slice(2);
-
-    const unlockEvent = Unlock.buildEvent(txHash).toUnsignedPowEvent(
-      nostrPubkey,
-      Unlock.unlockDifficulty
-    );
-    const event = await nostrSigner.signEvent(unlockEvent);
-
-    const eventWitness = Serializer.packEvents([event]);
-    const witness = bytes.hexify(
-      blockchain.WitnessArgs.pack({ lock: eventWitness })
-    );
-    txSkeleton = txSkeleton.update(
-      "witnesses",
-      (witnesses: Immutable.List<string>) => witnesses.set(0, witness)
-    );
-    const signedTx = helpers.createTransactionFromSkeleton(txSkeleton);
-    const realTxHash = await offCKB.rpc.sendTransaction(
+    const signedTx = await Unlock.signTx(txSkeleton, [0], nostrSigner.signEventBuilder);
+    const txHash = await offCKB.rpc.sendTransaction(
       signedTx,
       "passthrough"
     );
-    setResult("transfer tx: " + realTxHash);
+    setResult("transfer tx: " + txHash);
+  };
+
+  const unlockNostrLock = async () => {    
+    const nostrPubkey = await nostrSigner.publicKey();
+    const newLock = buildAlwaysSuccessLock();
+    let txSkeleton = await Unlock.buildCKBTransaction(
+      nostrPubkey,
+      newLock,
+      undefined 
+    );
+
+    const lumosConfig = offCKBConfig.lumosConfig;
+    txSkeleton = txSkeleton.update("cellDeps", (cellDeps) =>
+      cellDeps.push({
+        outPoint: {
+          txHash: lumosConfig.SCRIPTS.NOSTR_BINDING!.TX_HASH,
+          index: lumosConfig.SCRIPTS.NOSTR_BINDING!.INDEX,
+        },
+        depType: lumosConfig.SCRIPTS.NOSTR_BINDING!.DEP_TYPE,
+      }) 
+    );
+
+    const signer = async (event: EventBuilder) => {
+      const pubkey = await nostrSigner.publicKey();
+      const unsignedEvent = event.toUnsignedEvent(pubkey);
+      return await nostrSigner.signEvent(unsignedEvent);
+    }
+    const signedTx = await Unlock.signTx(txSkeleton, [0], signer);
+    const txHash = await offCKB.rpc.sendTransaction(
+      signedTx,
+      "passthrough"
+    );
+    setResult("unlock Nostr lock tx: " + txHash);
   };
 
   return (
     <div>
       <button onClick={onUnlock}>Transfer</button>
+      <br />
+      <button onClick={unlockNostrLock}>unlock NostrLock</button>
     </div>
   );
 }

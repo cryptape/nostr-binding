@@ -21,7 +21,7 @@ export class Mint {
   static buildEvent(assetEventId: string, cellTypeId: string, content = "") {
     const tags = [
       Tag.event(EventId.fromHex(assetEventId)),
-      Tag.parse([TagName.cellTypeId, cellTypeId]),
+      Tag.parse([TagName.ckbGlobalUniqueId, cellTypeId]),
     ];
     const builder = new EventBuilder(this.kind, content, tags);
     return builder;
