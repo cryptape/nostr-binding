@@ -23,7 +23,7 @@ export async function collectCell(ckbAddress: string, neededCapacity: BI) {
 
   let collectedSum = BI.from(0);
   const collected: Cell[] = [];
-  const collector = indexer.collector({ lock: fromScript, type: "empty" });
+  const collector = indexer.collector({ lock: fromScript, type: "empty", argsLen: 21 });
   for await (const cell of collector.collect()) {
     collectedSum = collectedSum.add(cell.cellOutput.capacity);
     collected.push(cell);

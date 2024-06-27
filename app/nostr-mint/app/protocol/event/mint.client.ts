@@ -13,38 +13,36 @@ import { NostrLock } from "../script/nostr-lock.client";
 import { NostrBinding } from "../script/nostr-binding.client";
 import { ProtocolKind } from "../kind";
 import { mergeArraysAndRemoveDuplicates } from "../util";
+import { blockchain } from "@ckb-lumos/base";
+import { bytes, number } from "@ckb-lumos/codec";
+import { jsonStringToBytes } from "../serialize";
 
 export class Mint {
   public static kind = ProtocolKind.mint;
   public static mintDifficulty = 10;
 
-  static buildEvent(assetEventId: string, cellTypeId: string, content = "") {
+  static buildEvent(globalUniqueId: string, content = "") {
     const tags = [
-      Tag.event(EventId.fromHex(assetEventId)),
-      Tag.parse([TagName.ckbGlobalUniqueId, cellTypeId]),
+      Tag.parse([TagName.ckbGlobalUniqueId, globalUniqueId]),
     ];
     const builder = new EventBuilder(this.kind, content, tags);
     return builder;
   }
 
-  static async buildTransaction(ckbAddress: string, assetEvent: Event) {
+  static async buildTransaction(nostrPublicKey: PublicKey, ckbAddress: string) {
     let txSkeleton = helpers.TransactionSkeleton({});
     const collectedInputs = await collectCell(ckbAddress, BI.from(16000000000));
-
-    const typeId = NostrBinding.buildTypeId(collectedInputs[0], "0x0");
+    const globalUniqueId = NostrBinding.buildGlobalUniqueId(collectedInputs[0], "0x0");
 
     const mintEvent = this.buildEvent(
-      assetEvent.id.toHex(),
-      typeId,
-      "This is the content of the Test-NFT Item"
-    ).toUnsignedPowEvent(assetEvent.author, this.mintDifficulty);
-
-    const ownerPubkeyStr = NostrLock.parseCBKAddressToNostrPubkey(ckbAddress);
-    const ownerPubkey = PublicKey.fromHex(ownerPubkeyStr.slice(2));
-    const lock = NostrLock.buildScript(ownerPubkey);
+      globalUniqueId,
+      "This is the content of the Test-NFT"
+    ).toUnsignedPowEvent(nostrPublicKey, this.mintDifficulty);
+    
+    const lock = NostrLock.buildScript(nostrPublicKey);
     const bindingCell = NostrBinding.buildBindingCell(
       mintEvent.id.toHex(),
-      typeId,
+      globalUniqueId,
       lock
     );
     // todo: add changeCell and fee rate

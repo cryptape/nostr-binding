@@ -31,7 +31,7 @@ export class NostrLock {
     return address;
   }
 
-  public static parseCBKAddressToNostrPubkey(ckbAddress: string) {
+  public static parseCBKAddressToNostrPubkeyHash(ckbAddress: string) {
     if (!this.isScriptExist()) {
       throw new Error("nostr lock script not found. have you deploy it?");
     }
@@ -44,7 +44,8 @@ export class NostrLock {
       throw new Error("nostr-lock contract script info not match!");
     }
 
-    return script.args;
+    // 20 bytes hash
+    return script.args.slice(4);
   }
 
   public static buildCellDeps() {

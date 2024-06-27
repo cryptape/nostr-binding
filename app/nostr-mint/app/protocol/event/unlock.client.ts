@@ -39,6 +39,7 @@ export class Unlock {
       throw new Error("lockIndexes length is 0");
     }
 
+    //todo: remove the following
     const keys = Keys.generate();
     const dummyEvent = this.buildDummyEvent().toEvent(keys).asJson();
     const dummyLength = jsonStringToBytes(dummyEvent).length;
@@ -107,7 +108,6 @@ export class Unlock {
       if (witness !== "0x") {
         let witnessArgs = blockchain.WitnessArgs.unpack(bytes.bytify(witness));
         witnessArgs.lock = bytes.hexify(eventJson);
-        console.log(witnessArgs);
         witness = bytes.hexify(blockchain.WitnessArgs.pack(witnessArgs));
         txSkeleton = txSkeleton.update("witnesses", (witnesses) =>
           witnesses.set(witnessIndex, witness)
