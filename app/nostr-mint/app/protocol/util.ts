@@ -1,4 +1,4 @@
-import { CellDep } from "@ckb-lumos/lumos";
+import { CellDep, HexString } from "@ckb-lumos/lumos";
 
 export function mergeArraysAndRemoveDuplicates(
   arr1: CellDep[],
@@ -28,4 +28,12 @@ export function jsonStringToBytes(jsonString: string): Uint8Array {
     view[i] = buffer[i];
   }
   return view;
+}
+
+export function bytesToJsonString(bytes: Uint8Array): string {
+  // Create a buffer from the Uint8Array
+  const buffer = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  
+  // Convert the buffer to a string
+  return buffer.toString('utf-8');
 }

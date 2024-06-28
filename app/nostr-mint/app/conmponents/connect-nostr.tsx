@@ -16,6 +16,7 @@ import { bytes } from "@ckb-lumos/codec";
 import { NostrLock } from "~/protocol/script/nostr-lock.client";
 import { Unlock } from "~/protocol/event/unlock.client";
 import { readEnvNetwork } from "offckb.config";
+import ExpandableDiv from "./expandable";
 
 export function ConnectNostr() {
   const [nostrPubkey, setNostrPubkey] = useState<string>();
@@ -139,27 +140,33 @@ export function ConnectNostr() {
         )}
       </div>
       {ckbAddress && <div>{ckbAddress}</div>}
-      {ckbAddress && balance != null && <div>{balance} CKB </div>}
+      {ckbAddress && <div>Balance: {balance} CKB </div>}
       {ckbAddress && (
-        <div className="w-full">
-          <div className="text-gray-500">
-            Hints: use{" "}
-            <a
-              href="https://github.com/RetricSu/offckb?tab=readme-ov-file#usage"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-purple-500 hover:text-purple-700 underline hover:no-underline"
-            >
-              offckb
-            </a>{" "}
-            to deposit some CKBs
-          </div>
-          <pre className="bg-gray-800 text-white p-4 rounded-md shadow-md overflow-x-auto w-full">
-            <code className="text-yellow-400">
-              offckb deposit {ckbAddress} 100000000000 --network {readEnvNetwork()}
-            </code>
-          </pre>
-        </div>
+        <ExpandableDiv
+          buttonText="How to Deposit CKB"
+          expandedContent={
+            <div className="w-full">
+              <div className="text-gray-500">
+              { readEnvNetwork() === "testnet" && <>Get some CKBs From <a href="https://faucet-api.nervos.org/" target="_blank" rel="noopener noreferrer" className="text-purple-500 hover:text-purple-700 underline hover:no-underline">Faucet</a> or</> } Use{" "}
+                <a
+                  href="https://github.com/RetricSu/offckb?tab=readme-ov-file#usage"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-purple-500 hover:text-purple-700 underline hover:no-underline"
+                >
+                  offckb
+                </a>{" "}
+                to deposit some CKBs
+              </div>
+              <pre className="bg-gray-800 text-white p-4 rounded-md shadow-md overflow-x-auto w-full">
+                <code className="text-yellow-400">
+                  offckb deposit {ckbAddress} 100000000000 --network{" "}
+                  {readEnvNetwork()}
+                </code>
+              </pre>
+            </div>
+          }
+        />
       )}
     </div>
   );

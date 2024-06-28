@@ -26,7 +26,8 @@ export default function Index() {
 
       <div className="flex gap-4">
         <MintButton setAssetEvent={setAssetEvent} setResult={setResult} />
-        <UnlockButton assetEvent={assetEvent} setResult={setResult} />
+        {assetEvent && <UnlockButton assetEvent={assetEvent} setResult={setResult} />}
+
         <AssetButton setResult={setResult} />
       </div>
 

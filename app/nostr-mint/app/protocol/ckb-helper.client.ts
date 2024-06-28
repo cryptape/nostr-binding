@@ -6,6 +6,7 @@ import {
   HashType,
   utils,
   Transaction,
+  OutPoint,
 } from "@ckb-lumos/lumos";
 import offCKB from "offckb.config";
 import { blockchain } from "@ckb-lumos/base";
@@ -101,6 +102,14 @@ export function buildAlwaysSuccessLock(): Script {
   };
 }
 
+export function buildDeadLock(): Script {
+  return {
+    codeHash: lumosConfig.SCRIPTS["SECP256K1_BLAKE160"]!.CODE_HASH,
+    hashType: lumosConfig.SCRIPTS["SECP256K1_BLAKE160"]!.HASH_TYPE as HashType,
+    args: "0x" + "00".repeat(20),
+  };
+}
+
 export function computeTransactionHash(rawTransaction: Transaction) {
   const transactionSerialized = bytes.hexify(
     blockchain.RawTransaction.pack(rawTransaction)
@@ -108,3 +117,14 @@ export function computeTransactionHash(rawTransaction: Transaction) {
   const rawTXHash = utils.ckbHash(transactionSerialized);
   return rawTXHash;
 }
+
+export async function getWitnessByOutpoint(outpoint: OutPoint){
+  const txHash = outpoint.txHash;
+  const index = +outpoint.index;
+  const tx = await offCKB.rpc.getTransaction(txHash);
+  if(tx){
+    return tx.transaction.witnesses[index];
+  }
+  return null;
+}
+

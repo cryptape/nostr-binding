@@ -1,7 +1,8 @@
 import { ReactNode, useContext } from "react";
 import { SingerContext } from "~/context/signer";
 import { listTypeCells } from "~/protocol/ckb-helper.client";
-import { NostrBinding } from "~/protocol/script/nostr-binding.client";
+import { AssetBox } from "./asset-box";
+
 
 export interface AssetButtonProp {
   setResult: (res: string | ReactNode) => void;
@@ -16,21 +17,9 @@ export function AssetButton({ setResult }: AssetButtonProp) {
       const cells = await listTypeCells(ckbAddress, undefined, 20);
       if (cells.length > 0) {
         return setResult(
-          <div className="flex flex-row gap-2">
-            {cells.map((cell) => (
-              <div>
-                {(
-                  <div className="border text-center py-2 px-4 rounded">
-                    <div>
-                    {(BigInt(cell.cellOutput.capacity) / 100000000n).toString()} CKB
-                    </div>
-                    <div className="text-gray-500 text-sm">
-                    {NostrBinding.isBindingType(cell.cellOutput.type) && "Nostr Binding Asset"}
-                    {cell.cellOutput.type == null && "Native CKB"}
-                    </div>
-                  </div>
-                )}
-              </div>
+          <div className="flex flex-row gap-2 max-w-full">
+            {cells.map((cell, id) => (
+              <AssetBox key={id} cell={cell}/> 
             ))}
           </div>
         );

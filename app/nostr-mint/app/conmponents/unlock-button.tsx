@@ -4,7 +4,7 @@ import { SingerContext } from "~/context/signer";
 import offCKB from "offckb.config";
 import { Unlock } from "~/protocol/event/unlock.client";
 import {
-  buildAlwaysSuccessLock,
+  buildDeadLock,
 } from "~/protocol/ckb-helper.client";
 import { Event, EventBuilder } from "@rust-nostr/nostr-sdk";
 import { NostrBinding } from "~/protocol/script/nostr-binding.client";
@@ -37,7 +37,7 @@ export function UnlockButton({ setResult, assetEvent }: UnlockButtonProp) {
 
   const unlock = async (type: Script) => {
     const nostrPubkey = await nostrSigner.publicKey();
-    const newLock = buildAlwaysSuccessLock();
+    const newLock = buildDeadLock();
     let txSkeleton = await Unlock.buildCKBTransaction(
       nostrPubkey,
       newLock,
@@ -70,7 +70,7 @@ export function UnlockButton({ setResult, assetEvent }: UnlockButtonProp) {
 
   return (
     <div className="my-1">
-      <button className="border border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white font-bold py-2 px-4 rounded" onClick={onUnlock}>Transfer Asset</button>
+      <button className="border border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white font-bold py-2 px-4 rounded" onClick={onUnlock}>Transfer The Minted Asset</button>
     </div>
   );
 }
