@@ -59,8 +59,8 @@ export function MintButton({ setResult, setAssetEvent }: MintButtonProp) {
   };
 
   return (
-    <div>
-      <button onClick={mint}>Mint</button>
+    <div className="my-1">
+      <button className="border border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white font-bold py-2 px-4 rounded" onClick={mint}>Mint a Asset</button>
     </div>
   );
 }

@@ -68,44 +68,9 @@ export function UnlockButton({ setResult, assetEvent }: UnlockButtonProp) {
     setResult("transfer tx: " + txHash);
   };
 
-  const unlockNostrLock = async () => {    
-    const nostrPubkey = await nostrSigner.publicKey();
-    const newLock = buildAlwaysSuccessLock();
-    let txSkeleton = await Unlock.buildCKBTransaction(
-      nostrPubkey,
-      newLock,
-      undefined 
-    );
-
-    const lumosConfig = offCKBConfig.lumosConfig;
-    txSkeleton = txSkeleton.update("cellDeps", (cellDeps) =>
-      cellDeps.push({
-        outPoint: {
-          txHash: lumosConfig.SCRIPTS.NOSTR_BINDING!.TX_HASH,
-          index: lumosConfig.SCRIPTS.NOSTR_BINDING!.INDEX,
-        },
-        depType: lumosConfig.SCRIPTS.NOSTR_BINDING!.DEP_TYPE,
-      }) 
-    );
-
-    const signer = async (event: EventBuilder) => {
-      const pubkey = await nostrSigner.publicKey();
-      const unsignedEvent = event.toUnsignedEvent(pubkey);
-      return await nostrSigner.signEvent(unsignedEvent);
-    }
-    const signedTx = await Unlock.signTx(txSkeleton, [0], signer);
-    const txHash = await offCKB.rpc.sendTransaction(
-      signedTx,
-      "passthrough"
-    );
-    setResult("unlock Nostr lock tx: " + txHash);
-  };
-
   return (
-    <div>
-      <button onClick={onUnlock}>Transfer</button>
-      <br />
-      <button onClick={unlockNostrLock}>unlock NostrLock</button>
+    <div className="my-1">
+      <button className="border border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white font-bold py-2 px-4 rounded" onClick={onUnlock}>Transfer Asset</button>
     </div>
   );
 }

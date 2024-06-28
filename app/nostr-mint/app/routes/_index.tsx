@@ -19,19 +19,17 @@ export default function Index() {
 
   return (
     <div style={{ fontFamily: "system-ui, sans-serif", lineHeight: "1.8" }}>
+      <div className="text-4xl font-bold my-6">Nostr Binding Protocol Demo</div>
       <div className="flex py-2">
-      <ConnectNostr />
+        <ConnectNostr />
       </div>
 
-      <ul>
-        <li>
-          <MintButton setAssetEvent={setAssetEvent} setResult={setResult} />
-          <UnlockButton assetEvent={assetEvent} setResult={setResult} />
-        </li>
-        <li>
-          <AssetButton assetEvent={assetEvent} setResult={setResult} />
-        </li>
-      </ul>
+      <div className="flex gap-4">
+        <MintButton setAssetEvent={setAssetEvent} setResult={setResult} />
+        <UnlockButton assetEvent={assetEvent} setResult={setResult} />
+        <AssetButton setResult={setResult} />
+      </div>
+
       <hr />
       <div className="mt-10 overflow-x-scroll">{result}</div>
     </div>

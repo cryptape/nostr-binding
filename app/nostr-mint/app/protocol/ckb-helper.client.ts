@@ -60,6 +60,26 @@ export async function collectTypeCell(
   return collected;
 }
 
+export async function listTypeCells(
+  ckbAddress: string,
+  type: Script | undefined,
+  maxTotal: number
+) {
+  const fromScript = helpers.parseAddress(ckbAddress, {
+    config: lumosConfig,
+  });
+
+  const collected: Cell[] = [];
+  const options = type != null ? { lock: fromScript, type } : { lock: fromScript } 
+  const collector = indexer.collector(options);
+  for await (const cell of collector.collect()) {
+    collected.push(cell);
+    if (collected.length >= maxTotal) break;
+  }
+
+  return collected;
+}
+
 export async function capacityOf(address: string): Promise<BI> {
   const collector = indexer.collector({
     lock: helpers.parseAddress(address),

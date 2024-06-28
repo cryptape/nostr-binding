@@ -22,7 +22,7 @@ export interface OffCKBConfig {
   readonly lumosConfig: config.Config;
 }
 
-function readEnvNetwork(): "devnet" | "testnet" | "mainnet" {
+export function readEnvNetwork(): "devnet" | "testnet" | "mainnet" {
   // you may need to update the env method
   // according to your frontend framework
   const defaultNetwork = "devnet";

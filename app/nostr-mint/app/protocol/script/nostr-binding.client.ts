@@ -18,6 +18,12 @@ export class NostrBinding {
     return lumosConfig.SCRIPTS.NOSTR_BINDING != null;
   }
 
+  static isBindingType(type: Script | undefined){
+    if(type == null) return false;
+    return type.codeHash === lumosConfig.SCRIPTS.NOSTR_BINDING!.CODE_HASH &&
+    type.hashType === lumosConfig.SCRIPTS.NOSTR_BINDING!.HASH_TYPE
+  }
+
   static buildScript(eventId: HexString, globalUniqueId: HexString): Script {
     if (!this.isScriptExist()) {
       throw new Error("nostr binding script not found. have you deploy it?");
