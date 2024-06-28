@@ -1,13 +1,12 @@
 import { bytes } from "@ckb-lumos/codec";
-import { helpers } from "@ckb-lumos/lumos";
 import { blockchain } from "@ckb-lumos/base";
 import { ReactNode, useContext } from "react";
 import { SingerContext } from "~/context/signer";
-import { Asset } from "~/protocol/event/asset";
 import { Mint } from "~/protocol/event/mint.client";
-import { Serializer } from "~/protocol/serialize";
+import { jsonStringToBytes } from "~/protocol/util";
 import offCKB from "offckb.config";
-import { Event } from "@rust-nostr/nostr-sdk";
+import { Event, EventBuilder } from "@rust-nostr/nostr-sdk";
+import { Unlock } from "~/protocol/event/unlock.client";
 
 export interface MintButtonProp {
   setResult: (res: string | ReactNode) => void;
@@ -20,41 +19,33 @@ export function MintButton({ setResult, setAssetEvent }: MintButtonProp) {
   const ckbSigner = context.ckbSigner!;
 
   const mint = async () => {
-    const nostrPubkey = await nostrSigner.publicKey();
-    const content = "This is the definition of the Test-NFT token";
-    const assetUnsignedEvent = Asset.buildEvent(
-      {
-        name: "Test-NFT token",
-        description: "There are only 100 NFT in total.",
-      },
-      content
-    ).toUnsignedEvent(nostrPubkey);
-    const assetEvent = await nostrSigner.signEvent(assetUnsignedEvent);
-    const { txSkeleton, mintEvent } = await Mint.buildTransaction(
-      ckbSigner.ckbAddress,
-      assetEvent
+    const signerNostrPublicKey = await nostrSigner.publicKey();
+    let { txSkeleton, mintEvent } = await Mint.buildTransaction(
+      signerNostrPublicKey,
+      ckbSigner.ckbAddress
     );
-    const event = await nostrSigner.signEvent(mintEvent);
-    setAssetEvent(event);
 
-    const eventWitness = Serializer.packEvents([event, assetEvent]);
-    let tx = ckbSigner.buildSigningEntries(txSkeleton, eventWitness);
-    const signedMessage = await ckbSigner.signMessage(
-      tx.signingEntries.get(0)!.message
+    const signedMintEvent = await nostrSigner.signEvent(mintEvent);
+    setAssetEvent(signedMintEvent);
+
+    const mintEventWitness = bytes.hexify(
+      jsonStringToBytes(signedMintEvent.asJson())
     );
-    let signedLockEvent = Event.fromJson(signedMessage);
-    const lockEventWitness = Serializer.packEvents([signedLockEvent]);
-    const signedWitness = bytes.hexify(
+    const witness = bytes.hexify(
       blockchain.WitnessArgs.pack({
-        lock: lockEventWitness,
-        outputType: eventWitness,
+        outputType: mintEventWitness,
       })
     );
-    tx = tx.update("witnesses", (witnesses: Immutable.List<string>) =>
-      witnesses.set(0, signedWitness)
+    txSkeleton = txSkeleton.update(
+      "witnesses",
+      (witnesses: Immutable.List<string>) => witnesses.set(0, witness)
     );
-
-    const signedTx = helpers.createTransactionFromSkeleton(tx);
+    const signer = async (event: EventBuilder) => {
+      const pubkey = await nostrSigner.publicKey();
+      const unsignedEvent = event.toUnsignedEvent(pubkey);
+      return await nostrSigner.signEvent(unsignedEvent);
+    };
+    const signedTx = await Unlock.signTx(txSkeleton, [0], signer);
     const txHash = await offCKB.rpc.sendTransaction(signedTx, "passthrough");
 
     setResult(
@@ -68,8 +59,8 @@ export function MintButton({ setResult, setAssetEvent }: MintButtonProp) {
   };
 
   return (
-    <div>
-      <button onClick={mint}>Mint</button>
+    <div className="my-1">
+      <button className="border border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white font-bold py-2 px-4 rounded" onClick={mint}>Mint a Asset</button>
     </div>
   );
 }

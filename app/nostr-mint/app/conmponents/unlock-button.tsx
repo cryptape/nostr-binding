@@ -1,21 +1,18 @@
-import { bytes } from "@ckb-lumos/codec";
-import { Script, helpers } from "@ckb-lumos/lumos";
-import { blockchain } from "@ckb-lumos/base";
+import { Script } from "@ckb-lumos/lumos";
 import { useContext } from "react";
 import { SingerContext } from "~/context/signer";
-import { Serializer } from "~/protocol/serialize";
 import offCKB from "offckb.config";
 import { Unlock } from "~/protocol/event/unlock.client";
 import {
   buildAlwaysSuccessLock,
-  computeTransactionHash,
 } from "~/protocol/ckb-helper.client";
-import { Event } from "@rust-nostr/nostr-sdk";
+import { Event, EventBuilder } from "@rust-nostr/nostr-sdk";
 import { NostrBinding } from "~/protocol/script/nostr-binding.client";
 import offCKBConfig from "offckb.config";
+import { TagName } from "~/protocol/tag";
 
 export interface UnlockButtonProp {
-  assetEvent: Event;
+  assetEvent: Event | undefined;
   setResult: (res: string) => void;
 }
 
@@ -24,15 +21,17 @@ export function UnlockButton({ setResult, assetEvent }: UnlockButtonProp) {
   const nostrSigner = context.nostrSigner!;
 
   const onUnlock = async () => {
+    if(assetEvent == null)return;
+
     const eventId = assetEvent.id.toHex();
-    const typeIdTag = assetEvent.tags.find(
-      (t) => t.asVec()[0] === "cell_type_id"
+    const uniqueIdTag = assetEvent.tags.find(
+      (t) => t.asVec()[0] === TagName.ckbGlobalUniqueId 
     );
-    if (!typeIdTag) {
+    if (!uniqueIdTag) {
       return alert("invalid asset event!");
     }
-    const typeId = typeIdTag.asVec()[1];
-    const type = NostrBinding.buildScript(eventId, typeId);
+    const globalUniqueId = uniqueIdTag.asVec()[1];
+    const type = NostrBinding.buildScript(eventId, globalUniqueId);
     return await unlock(type);
   };
 
@@ -56,34 +55,22 @@ export function UnlockButton({ setResult, assetEvent }: UnlockButtonProp) {
       }) 
     );
 
-    const tx = helpers.createTransactionFromSkeleton(txSkeleton);
-    const txHash = computeTransactionHash(tx).slice(2);
-
-    const unlockEvent = Unlock.buildEvent(txHash).toUnsignedPowEvent(
-      nostrPubkey,
-      Unlock.unlockDifficulty
-    );
-    const event = await nostrSigner.signEvent(unlockEvent);
-
-    const eventWitness = Serializer.packEvents([event]);
-    const witness = bytes.hexify(
-      blockchain.WitnessArgs.pack({ lock: eventWitness })
-    );
-    txSkeleton = txSkeleton.update(
-      "witnesses",
-      (witnesses: Immutable.List<string>) => witnesses.set(0, witness)
-    );
-    const signedTx = helpers.createTransactionFromSkeleton(txSkeleton);
-    const realTxHash = await offCKB.rpc.sendTransaction(
+    const signer = async (event: EventBuilder) => {
+      const pubkey = await nostrSigner.publicKey();
+      const unsignedEvent = event.toUnsignedEvent(pubkey);
+      return await nostrSigner.signEvent(unsignedEvent);
+    }
+    const signedTx = await Unlock.signTx(txSkeleton, [0], signer);
+    const txHash = await offCKB.rpc.sendTransaction(
       signedTx,
       "passthrough"
     );
-    setResult("transfer tx: " + realTxHash);
+    setResult("transfer tx: " + txHash);
   };
 
   return (
-    <div>
-      <button onClick={onUnlock}>Transfer</button>
+    <div className="my-1">
+      <button className="border border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white font-bold py-2 px-4 rounded" onClick={onUnlock}>Transfer Asset</button>
     </div>
   );
 }

@@ -39,7 +39,7 @@ export async function collectCell(ckbAddress: string, neededCapacity: BI) {
 
 export async function collectTypeCell(
   ckbAddress: string,
-  type: Script,
+  type: Script | undefined,
   total: number
 ) {
   const fromScript = helpers.parseAddress(ckbAddress, {
@@ -55,6 +55,26 @@ export async function collectTypeCell(
 
   if (collected.length < total) {
     throw new Error(`Not enough type cells, ${collected.length} < ${total}`);
+  }
+
+  return collected;
+}
+
+export async function listTypeCells(
+  ckbAddress: string,
+  type: Script | undefined,
+  maxTotal: number
+) {
+  const fromScript = helpers.parseAddress(ckbAddress, {
+    config: lumosConfig,
+  });
+
+  const collected: Cell[] = [];
+  const options = type != null ? { lock: fromScript, type } : { lock: fromScript } 
+  const collector = indexer.collector(options);
+  for await (const cell of collector.collect()) {
+    collected.push(cell);
+    if (collected.length >= maxTotal) break;
   }
 
   return collected;

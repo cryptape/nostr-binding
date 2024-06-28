@@ -18,12 +18,18 @@ export class NostrBinding {
     return lumosConfig.SCRIPTS.NOSTR_BINDING != null;
   }
 
-  static buildScript(eventId: HexString, typeId: HexString): Script {
+  static isBindingType(type: Script | undefined){
+    if(type == null) return false;
+    return type.codeHash === lumosConfig.SCRIPTS.NOSTR_BINDING!.CODE_HASH &&
+    type.hashType === lumosConfig.SCRIPTS.NOSTR_BINDING!.HASH_TYPE
+  }
+
+  static buildScript(eventId: HexString, globalUniqueId: HexString): Script {
     if (!this.isScriptExist()) {
       throw new Error("nostr binding script not found. have you deploy it?");
     }
 
-    const bindingArgs = `0x${eventId}${typeId}`;
+    const bindingArgs = `0x${eventId}${globalUniqueId}`;
     return {
       codeHash: lumosConfig.SCRIPTS.NOSTR_BINDING!.CODE_HASH,
       hashType: lumosConfig.SCRIPTS.NOSTR_BINDING!.HASH_TYPE,
@@ -31,8 +37,8 @@ export class NostrBinding {
     };
   }
 
-  static buildBindingCell(eventId: HexString, typeId: HexString, lock: Script) {
-    const type = NostrBinding.buildScript(eventId, typeId);
+  static buildBindingCell(eventId: HexString, globalUniqueId: HexString, lock: Script) {
+    const type = NostrBinding.buildScript(eventId, globalUniqueId);
     const bindingOutput: Cell = {
       cellOutput: {
         capacity: BI.from(0).toHexString(),
@@ -46,7 +52,7 @@ export class NostrBinding {
     return bindingOutput;
   }
 
-  static buildTypeId(inputCell: Cell, index: HexNumber) {
+  static buildGlobalUniqueId(inputCell: Cell, index: HexNumber) {
     if (!inputCell.outPoint) throw new Error("input Cell has no outpoint!");
 
     const input: Input = {
@@ -70,13 +76,6 @@ export class NostrBinding {
           index: lumosConfig.SCRIPTS.NOSTR_BINDING!.INDEX,
         },
         depType: lumosConfig.SCRIPTS.NOSTR_BINDING!.DEP_TYPE,
-      },
-      {
-        outPoint: {
-          txHash: lumosConfig.SCRIPTS.AUTH!.TX_HASH,
-          index: lumosConfig.SCRIPTS.AUTH!.INDEX,
-        },
-        depType: lumosConfig.SCRIPTS.AUTH!.DEP_TYPE,
       }
     );
     return cellDeps;

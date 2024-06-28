@@ -7,12 +7,15 @@ import {
 import { useContext, useMemo, useState } from "react";
 import { commons, helpers } from "@ckb-lumos/lumos";
 import { CKBSigner, SingerContext } from "~/context/signer";
-import { capacityOf, computeTransactionHash } from "~/protocol/ckb-helper.client";
+import {
+  capacityOf,
+  computeTransactionHash,
+} from "~/protocol/ckb-helper.client";
 import { blockchain } from "@ckb-lumos/base";
 import { bytes } from "@ckb-lumos/codec";
 import { NostrLock } from "~/protocol/script/nostr-lock.client";
 import { Unlock } from "~/protocol/event/unlock.client";
-import copy from 'copy-to-clipboard';
+import { readEnvNetwork } from "offckb.config";
 
 export function ConnectNostr() {
   const [nostrPubkey, setNostrPubkey] = useState<string>();
@@ -122,14 +125,42 @@ export function ConnectNostr() {
   }, [ckbAddress]);
 
   return (
-    <div className="flex flex-col">
-      <button onClick={connect}>
-        {nostrPubkey
-          ? `${nostrPubkey.slice(0, 8)}..${nostrPubkey.slice(-4)}`
-          : "Connect Nostr"}
-      </button>
-      {ckbAddress && <div onClick={()=>copy(ckbAddress, {onCopy: (_) => alert("address copied: " + ckbAddress)})}>{ckbAddress.slice(0, 8)}..{ckbAddress.slice(-4)}</div>}
-      {ckbAddress && balance != null && <div>{balance} CKB</div>}
+    <div className="mb-4 w-full">
+      <div>
+        {nostrPubkey ? (
+          `${nostrPubkey}`
+        ) : (
+          <button
+            onClick={connect}
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          >
+            Connect Nostr
+          </button>
+        )}
+      </div>
+      {ckbAddress && <div>{ckbAddress}</div>}
+      {ckbAddress && balance != null && <div>{balance} CKB </div>}
+      {ckbAddress && (
+        <div className="w-full">
+          <div className="text-gray-500">
+            Hints: use{" "}
+            <a
+              href="https://github.com/RetricSu/offckb?tab=readme-ov-file#usage"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-purple-500 hover:text-purple-700 underline hover:no-underline"
+            >
+              offckb
+            </a>{" "}
+            to deposit some CKBs
+          </div>
+          <pre className="bg-gray-800 text-white p-4 rounded-md shadow-md overflow-x-auto w-full">
+            <code className="text-yellow-400">
+              offckb deposit {ckbAddress} 100000000000 --network {readEnvNetwork()}
+            </code>
+          </pre>
+        </div>
+      )}
     </div>
   );
 }

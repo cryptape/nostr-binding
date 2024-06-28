@@ -22,7 +22,7 @@ export interface OffCKBConfig {
   readonly lumosConfig: config.Config;
 }
 
-function readEnvNetwork(): "devnet" | "testnet" | "mainnet" {
+export function readEnvNetwork(): "devnet" | "testnet" | "mainnet" {
   // you may need to update the env method
   // according to your frontend framework
   const defaultNetwork = "devnet";
@@ -138,24 +138,17 @@ const lumosConfig: config.Config = {
       "INDEX": "0xe",
       "DEP_TYPE": "code"
     },
-    "AUTH": {
-      "CODE_HASH": "0x7e7ad21325f83a4678034838395a495a5b174bed241730a6cf13070bc167bcf4",
-      "HASH_TYPE": "data2",
-      "TX_HASH": "0xf38b75ecb640dc035fb8a05375c0e08dfc4002aa7548ccde158246a02517be29",
-      "INDEX": "0x0",
-      "DEP_TYPE": "code"
-    },
     "NOSTR_BINDING": {
-      "CODE_HASH": "0xb82641271a3954006ac7b6bb01a591029f2e87d271aac9a4adbaf1a9bef81979",
-      "HASH_TYPE": "data2",
-      "TX_HASH": "0x63327888f09006be1c6c04f6ed8300f03472bf5a07bceb6538635b6e68f6afa4",
+      "CODE_HASH": "0x5ea4b9d50093a19943dc788c15bbdf7cd9d89efd67989a18b162feca814d90bb",
+      "HASH_TYPE": "type",
+      "TX_HASH": "0x8e5f51f2e0a5a4aedfd310ad4174e45a65009f6f13c3f8c24a3ffd2939a75aa4",
       "INDEX": "0x0",
       "DEP_TYPE": "code"
     },
     "NOSTR_LOCK": {
-      "CODE_HASH": "0xbf3767fdb36789ac91344b9523aa5d8ab86a69fa0fb65291a42c9670266d7d60",
-      "HASH_TYPE": "data2",
-      "TX_HASH": "0x7b10b148746398d0cdf60c2b402f3e0a9838deee0f499ce791a3c65db83986d7",
+      "CODE_HASH": "0xc991186b2720166187113e1da22a92db306ddc8a8f46c7c85846b8559d4fdd11",
+      "HASH_TYPE": "type",
+      "TX_HASH": "0x7261c51659a695e135bb3a56c83e878a271125244665b208a586c4329ce1b1a9",
       "INDEX": "0x0",
       "DEP_TYPE": "code"
     }
@@ -207,10 +200,24 @@ const testnetLumosConfig: config.Config = {
     "OMNILOCK": {
       "CODE_HASH": "0xf329effd1c475a2978453c8600e1eaf0bc2087ee093c3ee64cc96ec6847752cb",
       "HASH_TYPE": "type",
-      "TX_HASH": "0x27b62d8be8ed80b9f56ee0fe41355becdb6f6a40aeba82d3900434f43b1c8b60",
+      "TX_HASH": "0xec18bf0d857c981c3d1f4e17999b9b90c484b303378e94de1a57b0872f5d4602",
       "INDEX": "0x0",
       "DEP_TYPE": "code"
-    }
+    },
+    "NOSTR_LOCK": {
+      "CODE_HASH": "0x0a82c98ccd9fe5d1d8e07789664b3bd5f6c9e79885846b2e718f5954edb4776a",
+      "HASH_TYPE": "type",
+      "TX_HASH": "0xac9071e7a25564c1bfab7884885547e1d9fd5505b5653adcaf2bf77f926fd6e3",
+      "INDEX": "0x0",
+      "DEP_TYPE": "code"
+    },
+    "NOSTR_BINDING": {
+      "CODE_HASH": "0x09f2f1ceef2d59a368dc0b2be38494c8e11b0ec459f62cf7db74a645fbeabeee",
+      "HASH_TYPE": "type",
+      "TX_HASH": "0x6be8a9b73326a9694f12d6670c74535463b3a508038cd5ddaa4ba7450fcad305",
+      "INDEX": "0x0",
+      "DEP_TYPE": "code"
+    },
   }
 } as config.Config;
 // ---end of testnet lumos config---
