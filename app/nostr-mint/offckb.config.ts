@@ -200,10 +200,24 @@ const testnetLumosConfig: config.Config = {
     "OMNILOCK": {
       "CODE_HASH": "0xf329effd1c475a2978453c8600e1eaf0bc2087ee093c3ee64cc96ec6847752cb",
       "HASH_TYPE": "type",
-      "TX_HASH": "0x27b62d8be8ed80b9f56ee0fe41355becdb6f6a40aeba82d3900434f43b1c8b60",
+      "TX_HASH": "0xec18bf0d857c981c3d1f4e17999b9b90c484b303378e94de1a57b0872f5d4602",
       "INDEX": "0x0",
       "DEP_TYPE": "code"
-    }
+    },
+    "NOSTR_LOCK": {
+      "CODE_HASH": "0x0a82c98ccd9fe5d1d8e07789664b3bd5f6c9e79885846b2e718f5954edb4776a",
+      "HASH_TYPE": "type",
+      "TX_HASH": "0xac9071e7a25564c1bfab7884885547e1d9fd5505b5653adcaf2bf77f926fd6e3",
+      "INDEX": "0x0",
+      "DEP_TYPE": "code"
+    },
+    "NOSTR_BINDING": {
+      "CODE_HASH": "0x09f2f1ceef2d59a368dc0b2be38494c8e11b0ec459f62cf7db74a645fbeabeee",
+      "HASH_TYPE": "type",
+      "TX_HASH": "0x6be8a9b73326a9694f12d6670c74535463b3a508038cd5ddaa4ba7450fcad305",
+      "INDEX": "0x0",
+      "DEP_TYPE": "code"
+    },
   }
 } as config.Config;
 // ---end of testnet lumos config---
