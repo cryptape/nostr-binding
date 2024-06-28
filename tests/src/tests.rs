@@ -1,7 +1,7 @@
 extern crate hex;
 use crate::{
     assert_script_error, blake160, new_blake2b, sign_lock_script, sign_pow_lock_script,
-    type_script_mint, unix_time_now, TestSchema, MAX_CYCLES,
+    type_script_mint, unix_time_now, TestEvent, TestSchema, MAX_CYCLES,
 };
 use ckb_testtool::{
     builtin::ALWAYS_SUCCESS,
@@ -225,8 +225,7 @@ fn new_lock_pow_template(_schema: TestSchema) -> (Context, TransactionView, u8) 
 #[test]
 fn test_unlock_lock() {
     let (context, tx, _) = new_lock_template(TestSchema::Normal);
-    let created_at = unix_time_now();
-    let tx = sign_lock_script(&KEY, created_at, vec![0], 1, tx, TestSchema::Normal);
+    let tx = sign_lock_script(TestEvent::new(&KEY), vec![0], 1, tx, TestSchema::Normal);
     let cycles = context
         .verify_tx(&tx, MAX_CYCLES)
         .expect("pass verification");
@@ -272,8 +271,7 @@ fn test_unlock_lock_pow_failed_difficulty() {
 #[test]
 fn test_unlock_lock_pubkey_failed() {
     let (context, tx, _) = new_lock_template(TestSchema::WrongPubkey);
-    let created_at = unix_time_now();
-    let tx = sign_lock_script(&KEY, created_at, vec![0], 1, tx, TestSchema::Normal);
+    let tx = sign_lock_script(TestEvent::new(&KEY), vec![0], 1, tx, TestSchema::Normal);
     let result = context.verify_tx(&tx, MAX_CYCLES);
     assert_script_error(result.err().unwrap(), 26);
 }
@@ -281,8 +279,13 @@ fn test_unlock_lock_pubkey_failed() {
 #[test]
 fn test_unlock_lock_signature_failed() {
     let (context, tx, _) = new_lock_template(TestSchema::Normal);
-    let created_at = unix_time_now();
-    let tx = sign_lock_script(&KEY, created_at, vec![0], 1, tx, TestSchema::WrongSignature);
+    let tx = sign_lock_script(
+        TestEvent::new(&KEY),
+        vec![0],
+        1,
+        tx,
+        TestSchema::WrongSignature,
+    );
     let result = context.verify_tx(&tx, MAX_CYCLES);
     assert_script_error(result.err().unwrap(), 18);
 }
@@ -305,8 +308,7 @@ fn test_unlock_2_lock() {
     // append one cell to input
     let tx = tx.as_advanced_builder().input(input).build();
 
-    let created_at = unix_time_now();
-    let tx = sign_lock_script(&KEY, created_at, vec![0, 1], 2, tx, TestSchema::Normal);
+    let tx = sign_lock_script(TestEvent::new(&KEY), vec![0, 1], 2, tx, TestSchema::Normal);
     let cycles = context
         .verify_tx(&tx, MAX_CYCLES)
         .expect("pass verification");
@@ -336,8 +338,7 @@ fn test_unlock_lock_extra_witness() {
         .witnesses(vec![Bytes::new(), Bytes::from(vec![0u8; 600_000])].pack())
         .build();
 
-    let created_at = unix_time_now();
-    let tx = sign_lock_script(&KEY, created_at, vec![0, 1], 2, tx, TestSchema::Normal);
+    let tx = sign_lock_script(TestEvent::new(&KEY), vec![0, 1], 2, tx, TestSchema::Normal);
     let cycles = context
         .verify_tx(&tx, MAX_CYCLES)
         .expect("pass verification");
@@ -372,4 +373,199 @@ fn test_mint_failed_wrong_global_unique_id2() {
     let (context, tx, _script) = new_type_mint_template(TestSchema::WrongGlobalUniqueId2);
     let result = context.verify_tx(&tx, MAX_CYCLES);
     assert_script_error(result.err().unwrap(), 58);
+}
+
+#[test]
+fn test_unlock_lock_incorrect_json() {
+    let (context, tx, _) = new_lock_template(TestSchema::Normal);
+    let tx = sign_lock_script(TestEvent::new(&KEY), vec![0], 1, tx, TestSchema::Normal);
+
+    let witnesses = tx.witnesses();
+    let mut witnesses: Vec<Bytes> = witnesses.into_iter().map(|f| f.as_bytes()).collect();
+
+    let witness = packed::WitnessArgs::default()
+        .as_builder()
+        .lock(Some(Bytes::from("Test".as_bytes())).pack())
+        .build()
+        .as_bytes();
+
+    witnesses[0] = witness;
+
+    let tx = tx
+        .as_advanced_builder()
+        .set_witnesses(witnesses.iter().map(|f| f.pack()).collect())
+        .build();
+
+    let result = context.verify_tx(&tx, MAX_CYCLES);
+    assert_script_error(result.err().unwrap(), 21);
+}
+
+#[test]
+fn test_unlock_no_tags() {
+    let (context, tx, _) = new_lock_template(TestSchema::Normal);
+    let tx = sign_lock_script(TestEvent::new(&KEY), vec![0], 1, tx, TestSchema::Normal);
+
+    let witnesses = tx.witnesses();
+    let mut witnesses: Vec<Bytes> = witnesses.into_iter().map(|f| f.as_bytes()).collect();
+
+    let witness = packed::WitnessArgs::from_slice(&witnesses[0].to_vec()[4..])
+        .unwrap()
+        .lock()
+        .to_opt()
+        .unwrap()
+        .as_slice()[4..]
+        .to_vec();
+
+    let witness = String::from_utf8(witness).unwrap();
+    let witness = witness.replace("tags", "test").as_bytes().to_vec();
+
+    let witness = packed::WitnessArgs::default()
+        .as_builder()
+        .lock(Some(Bytes::from(witness)).pack())
+        .build()
+        .as_bytes();
+
+    witnesses[0] = witness;
+
+    let tx = tx
+        .as_advanced_builder()
+        .set_witnesses(witnesses.iter().map(|f| f.pack()).collect())
+        .build();
+
+    let result = context.verify_tx(&tx, MAX_CYCLES);
+    assert_script_error(result.err().unwrap(), 21);
+}
+
+#[test]
+fn test_unlock_incorrect_tag_info() {
+    let (context, tx, _) = new_lock_template(TestSchema::Normal);
+    let tx = sign_lock_script(TestEvent::new(&KEY), vec![0], 1, tx, TestSchema::Normal);
+
+    let witnesses = tx.witnesses();
+    let mut witnesses: Vec<Bytes> = witnesses.into_iter().map(|f| f.as_bytes()).collect();
+
+    let witness = packed::WitnessArgs::from_slice(&witnesses[0].to_vec()[4..])
+        .unwrap()
+        .lock()
+        .to_opt()
+        .unwrap()
+        .as_slice()[4..]
+        .to_vec();
+
+    let witness = String::from_utf8(witness).unwrap();
+    let witness = witness
+        .replace("ckb_sighash_all", "ckb_sighash_lll")
+        .as_bytes()
+        .to_vec();
+
+    let witness = packed::WitnessArgs::default()
+        .as_builder()
+        .lock(Some(Bytes::from(witness)).pack())
+        .build()
+        .as_bytes();
+
+    witnesses[0] = witness;
+
+    let tx = tx
+        .as_advanced_builder()
+        .set_witnesses(witnesses.iter().map(|f| f.pack()).collect())
+        .build();
+
+    let result = context.verify_tx(&tx, MAX_CYCLES);
+    assert_script_error(result.err().unwrap(), 11); // SighashAllMismatched
+}
+
+#[test]
+fn test_unlock_incorrect_event_id() {
+    let (context, tx, _) = new_lock_template(TestSchema::Normal);
+    let tx = sign_lock_script(TestEvent::new(&KEY), vec![0], 1, tx, TestSchema::Normal);
+
+    let witnesses = tx.witnesses();
+    let mut witnesses: Vec<Bytes> = witnesses.into_iter().map(|f| f.as_bytes()).collect();
+
+    let witness = packed::WitnessArgs::from_slice(&witnesses[0].to_vec()[4..])
+        .unwrap()
+        .lock()
+        .to_opt()
+        .unwrap()
+        .as_slice()[4..]
+        .to_vec();
+
+    let witness = String::from_utf8(witness).unwrap();
+
+    let mut v = serde_json::from_str::<serde_json::Value>(&witness).unwrap();
+
+    if let Some(obj) = v.as_object_mut() {
+        obj.insert(
+            "id".to_string(),
+            serde_json::json!("00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"),
+        );
+    }
+
+    let witness = serde_json::to_string(&v).unwrap().as_bytes().to_vec();
+
+    let witness = packed::WitnessArgs::default()
+        .as_builder()
+        .lock(Some(Bytes::from(witness)).pack())
+        .build()
+        .as_bytes();
+
+    witnesses[0] = witness;
+
+    let tx = tx
+        .as_advanced_builder()
+        .set_witnesses(witnesses.iter().map(|f| f.pack()).collect())
+        .build();
+
+    let result = context.verify_tx(&tx, MAX_CYCLES);
+    assert_script_error(result.err().unwrap(), 17); // InvalidEventId
+}
+
+#[test]
+fn test_unlock_incorrect_kind() {
+    // TODO
+    // let (context, tx, _) = new_lock_template(TestSchema::Normal);
+    // let mut event = TestEvent::new(&KEY);
+    // event.kind += 1;
+    // let tx = sign_lock_script(event, vec![0], 1, tx, TestSchema::Normal);
+
+    // let witnesses = tx.witnesses();
+    // let mut witnesses: Vec<Bytes> = witnesses.into_iter().map(|f| f.as_bytes()).collect();
+
+    // let witness = packed::WitnessArgs::from_slice(&witnesses[0].to_vec()[4..])
+    //     .unwrap()
+    //     .lock()
+    //     .to_opt()
+    //     .unwrap()
+    //     .as_slice()[4..]
+    //     .to_vec();
+
+    // let witness = String::from_utf8(witness).unwrap();
+
+    // let mut v = serde_json::from_str::<serde_json::Value>(&witness).unwrap();
+
+    // if let Some(obj) = v.as_object_mut() {
+    //     obj.insert(
+    //         "id".to_string(),
+    //         serde_json::json!("00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"),
+    //     );
+    // }
+
+    // let witness = serde_json::to_string(&v).unwrap().as_bytes().to_vec();
+
+    // let witness = packed::WitnessArgs::default()
+    //     .as_builder()
+    //     .lock(Some(Bytes::from(witness)).pack())
+    //     .build()
+    //     .as_bytes();
+
+    // witnesses[0] = witness;
+
+    // let tx = tx
+    //     .as_advanced_builder()
+    //     .set_witnesses(witnesses.iter().map(|f| f.pack()).collect())
+    //     .build();
+
+    // let result = context.verify_tx(&tx, MAX_CYCLES);
+    // assert_script_error(result.err().unwrap(), 12); // KindMismatched
 }
