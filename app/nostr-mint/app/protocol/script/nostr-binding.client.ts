@@ -6,10 +6,14 @@ import {
   HexString,
   Input,
   Script,
+  WitnessArgs,
   helpers,
   utils,
 } from "@ckb-lumos/lumos";
 import offckb from "offckb.config";
+import { bytesToJsonString } from "../util";
+import { Event } from "@rust-nostr/nostr-sdk";
+import { bytes } from "@ckb-lumos/codec";
 
 const lumosConfig = offckb.lumosConfig;
 
@@ -22,6 +26,23 @@ export class NostrBinding {
     if(type == null) return false;
     return type.codeHash === lumosConfig.SCRIPTS.NOSTR_BINDING!.CODE_HASH &&
     type.hashType === lumosConfig.SCRIPTS.NOSTR_BINDING!.HASH_TYPE
+  }
+
+  static parseEventFromWitnessArgs(args: WitnessArgs){
+    const outputType = args.outputType;
+    if(outputType){
+      const eventBytes = bytes.bytify(outputType);
+      
+      const eventJsonString = bytesToJsonString(eventBytes);
+      try {
+        console.log(JSON.parse(eventJsonString))
+        return Event.fromJson(eventJsonString);
+      } catch (error: any) {
+        console.log(error)
+        return null;
+      }
+    }
+    return null;
   }
 
   static buildScript(eventId: HexString, globalUniqueId: HexString): Script {
