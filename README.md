@@ -18,7 +18,14 @@ Light paper to describe the Nostr binding protocol
 - [docs/lightpaper.md](/docs/lightpaper.md)
 - [docs/lightpaper-zh.md](/docs/lightpaper-zh.md)(中文版)
 
+Spec for implementation
+
+- [docs/nostr-binding-type-script.md](/docs/nostr-binding-type-script.md)
+- [docs/nostr-lock-script.md](/docs/nostr-lock-script.md)
+
 ## Run Demo
+
+### On Local Devnet
 
 ### 1. Start Devnet
 
@@ -45,7 +52,16 @@ Run the following commands to build the Scripts:
 
 ```sh
 make build
-cp deps/auth build/release/auth
+```
+
+The script binaries are located in `build/release`
+
+```sh
+cd build/release && ls -hl && cd ../..
+
+> total 704
+> -rwxr-xr-x  1 staff   170K Jun 28 11:32 nostr-binding
+> -rwxr-xr-x  1 staff   176K Jun 28 11:32 nostr-lock
 ```
 
 ### 3. Deploy Scripts
