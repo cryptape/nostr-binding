@@ -25,6 +25,17 @@ Spec for implementation
 
 ## Run Demo
 
+### On Testnet
+
+Just start the dApp:
+
+```sh
+cd app/nostr-mint
+npm i && NETWORK=testnet npm run dev 
+```
+
+Or visit: [nostr-binding.vercel.app](https://nostr-binding.vercel.app/)
+
 ### On Local Devnet
 
 ### 1. Start Devnet
