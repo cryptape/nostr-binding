@@ -1,7 +1,5 @@
 import {
-  Event,
   EventBuilder,
-  EventId,
   PublicKey,
   Tag,
 } from "@rust-nostr/nostr-sdk";
@@ -11,21 +9,17 @@ import { BI, helpers } from "@ckb-lumos/lumos";
 import { collectCell } from "../ckb-helper.client";
 import { NostrLock } from "../script/nostr-lock.client";
 import { NostrBinding } from "../script/nostr-binding.client";
-import { ProtocolKind } from "../kind";
 import { mergeArraysAndRemoveDuplicates } from "../util";
-import { blockchain } from "@ckb-lumos/base";
-import { bytes, number } from "@ckb-lumos/codec";
-import { jsonStringToBytes } from "../serialize";
 
 export class Mint {
-  public static kind = ProtocolKind.mint;
   public static mintDifficulty = 10;
 
-  static buildEvent(globalUniqueId: string, content = "") {
+  // todo: change to pass custom event
+  static buildEvent(globalUniqueId: string, kind = 1, content = "") {
     const tags = [
       Tag.parse([TagName.ckbGlobalUniqueId, globalUniqueId]),
     ];
-    const builder = new EventBuilder(this.kind, content, tags);
+    const builder = new EventBuilder(kind, content, tags);
     return builder;
   }
 
@@ -36,7 +30,8 @@ export class Mint {
 
     const mintEvent = this.buildEvent(
       globalUniqueId,
-      "This is the content of the Test-NFT"
+      1,
+      "This is a kind-1 short note, it is also a Non Fungible Token on CKB blockchain."
     ).toUnsignedPowEvent(nostrPublicKey, this.mintDifficulty);
     
     const lock = NostrLock.buildScript(nostrPublicKey);

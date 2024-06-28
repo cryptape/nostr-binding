@@ -7,12 +7,14 @@ import {
 import { useContext, useMemo, useState } from "react";
 import { commons, helpers } from "@ckb-lumos/lumos";
 import { CKBSigner, SingerContext } from "~/context/signer";
-import { capacityOf, computeTransactionHash } from "~/protocol/ckb-helper.client";
+import {
+  capacityOf,
+  computeTransactionHash,
+} from "~/protocol/ckb-helper.client";
 import { blockchain } from "@ckb-lumos/base";
 import { bytes } from "@ckb-lumos/codec";
 import { NostrLock } from "~/protocol/script/nostr-lock.client";
 import { Unlock } from "~/protocol/event/unlock.client";
-import copy from 'copy-to-clipboard';
 
 export function ConnectNostr() {
   const [nostrPubkey, setNostrPubkey] = useState<string>();
@@ -122,13 +124,20 @@ export function ConnectNostr() {
   }, [ckbAddress]);
 
   return (
-    <div className="flex flex-col">
-      <button onClick={connect}>
-        {nostrPubkey
-          ? `${nostrPubkey.slice(0, 8)}..${nostrPubkey.slice(-4)}`
-          : "Connect Nostr"}
-      </button>
-      {ckbAddress && <div onClick={()=>copy(ckbAddress, {onCopy: (_) => console.log("address copied: " + ckbAddress)})}>{ckbAddress.slice(0, 8)}..{ckbAddress.slice(-4)}</div>}
+    <div className="mb-4">
+      <div>
+        {nostrPubkey ? (
+          `${nostrPubkey}`
+        ) : (
+          <button
+            onClick={connect}
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          >
+            Connect Nostr
+          </button>
+        )}
+      </div>
+      {ckbAddress && <div>{ckbAddress}</div>}
       {ckbAddress && balance != null && <div>{balance} CKB</div>}
     </div>
   );

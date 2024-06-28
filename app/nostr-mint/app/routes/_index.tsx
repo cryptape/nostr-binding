@@ -19,15 +19,8 @@ export default function Index() {
 
   return (
     <div style={{ fontFamily: "system-ui, sans-serif", lineHeight: "1.8" }}>
-      <div className="flex justify-between py-2">
-        <div>
-          <a href="/about" target="_blank" rel="noopener noreferrer">
-            About
-          </a>
-        </div>
-        <div className="flex gap-4">
-          <ConnectNostr />
-        </div>
+      <div className="flex py-2">
+      <ConnectNostr />
       </div>
 
       <ul>

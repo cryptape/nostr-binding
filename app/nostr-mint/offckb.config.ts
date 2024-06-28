@@ -139,16 +139,16 @@ const lumosConfig: config.Config = {
       "DEP_TYPE": "code"
     },
     "NOSTR_BINDING": {
-      "CODE_HASH": "0x0bff3831ad0fa148af54acb1eb3d4b1121103b2fda548c564fe4f0554124db46",
+      "CODE_HASH": "0x5ea4b9d50093a19943dc788c15bbdf7cd9d89efd67989a18b162feca814d90bb",
       "HASH_TYPE": "type",
-      "TX_HASH": "0x57823257147f468d9e5b69d3fc6bbab157ba3421a8c8f5b436e32f1181b44c49",
+      "TX_HASH": "0x8e5f51f2e0a5a4aedfd310ad4174e45a65009f6f13c3f8c24a3ffd2939a75aa4",
       "INDEX": "0x0",
       "DEP_TYPE": "code"
     },
     "NOSTR_LOCK": {
-      "CODE_HASH": "0xa4dbcae2ebcebe59bd2cc0d657858084137bced6fe23437b63b512956ccc79f1",
+      "CODE_HASH": "0xc991186b2720166187113e1da22a92db306ddc8a8f46c7c85846b8559d4fdd11",
       "HASH_TYPE": "type",
-      "TX_HASH": "0x6a47de081abf43c2164a20fc5f9ffa5b4206c2d3c5aa84bdcff1d4f48ebc9523",
+      "TX_HASH": "0x7261c51659a695e135bb3a56c83e878a271125244665b208a586c4329ce1b1a9",
       "INDEX": "0x0",
       "DEP_TYPE": "code"
     }

@@ -1,18 +1,15 @@
-import { bytes } from "@ckb-lumos/codec";
-import { Script, helpers } from "@ckb-lumos/lumos";
-import { blockchain } from "@ckb-lumos/base";
+import { Script } from "@ckb-lumos/lumos";
 import { useContext } from "react";
 import { SingerContext } from "~/context/signer";
-import { Serializer } from "~/protocol/serialize";
 import offCKB from "offckb.config";
 import { Unlock } from "~/protocol/event/unlock.client";
 import {
   buildAlwaysSuccessLock,
-  computeTransactionHash,
 } from "~/protocol/ckb-helper.client";
 import { Event, EventBuilder } from "@rust-nostr/nostr-sdk";
 import { NostrBinding } from "~/protocol/script/nostr-binding.client";
 import offCKBConfig from "offckb.config";
+import { TagName } from "~/protocol/tag";
 
 export interface UnlockButtonProp {
   assetEvent: Event | undefined;
@@ -27,14 +24,14 @@ export function UnlockButton({ setResult, assetEvent }: UnlockButtonProp) {
     if(assetEvent == null)return;
 
     const eventId = assetEvent.id.toHex();
-    const typeIdTag = assetEvent.tags.find(
-      (t) => t.asVec()[0] === "cell_type_id"
+    const uniqueIdTag = assetEvent.tags.find(
+      (t) => t.asVec()[0] === TagName.ckbGlobalUniqueId 
     );
-    if (!typeIdTag) {
+    if (!uniqueIdTag) {
       return alert("invalid asset event!");
     }
-    const typeId = typeIdTag.asVec()[1];
-    const type = NostrBinding.buildScript(eventId, typeId);
+    const globalUniqueId = uniqueIdTag.asVec()[1];
+    const type = NostrBinding.buildScript(eventId, globalUniqueId);
     return await unlock(type);
   };
 
@@ -58,7 +55,12 @@ export function UnlockButton({ setResult, assetEvent }: UnlockButtonProp) {
       }) 
     );
 
-    const signedTx = await Unlock.signTx(txSkeleton, [0], nostrSigner.signEventBuilder);
+    const signer = async (event: EventBuilder) => {
+      const pubkey = await nostrSigner.publicKey();
+      const unsignedEvent = event.toUnsignedEvent(pubkey);
+      return await nostrSigner.signEvent(unsignedEvent);
+    }
+    const signedTx = await Unlock.signTx(txSkeleton, [0], signer);
     const txHash = await offCKB.rpc.sendTransaction(
       signedTx,
       "passthrough"

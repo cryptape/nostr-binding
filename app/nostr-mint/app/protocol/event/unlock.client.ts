@@ -19,7 +19,7 @@ import { collectTypeCell } from "../ckb-helper.client";
 import { NostrLock } from "../script/nostr-lock.client";
 import { ProtocolKind } from "../kind";
 import { Content } from "../content";
-import { jsonStringToBytes } from "../serialize";
+import { jsonStringToBytes } from "../util";
 import { blockchain } from "@ckb-lumos/base";
 import { bytes, number } from "@ckb-lumos/codec";
 
