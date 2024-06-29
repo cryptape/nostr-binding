@@ -8,14 +8,32 @@ import { RemixBrowser } from "@remix-run/react";
 import { loadWasmSync } from "@rust-nostr/nostr-sdk";
 import { startTransition, StrictMode } from "react";
 import { hydrateRoot } from "react-dom/client";
+import { initConfig } from "@joyid/nostr";
+import { readEnvNetwork } from "offckb.config";
 
 startTransition(() => {
+  // init nostr-sdk
   loadWasmSync();
+
+  // init joyId
+  const network = readEnvNetwork();
+  if (network !== "devnet") {
+    // joyId is not available in devnet
+    const joyidAppURL =
+      network === "testnet"
+        ? "https://testnet.joyid.dev"
+        : "https://mainnet.joyid.dev";
+    initConfig({
+      name: "Nostr Binding",
+      logo: "https://fav.farm/🆔",
+      joyidAppURL,
+    });
+  }
 
   hydrateRoot(
     document,
     <StrictMode>
-        <RemixBrowser />
+      <RemixBrowser />
     </StrictMode>
   );
 });

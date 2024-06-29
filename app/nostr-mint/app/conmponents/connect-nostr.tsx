@@ -16,6 +16,7 @@ import { bytes } from "@ckb-lumos/codec";
 import { NostrLock } from "~/protocol/script/nostr-lock.client";
 import { Unlock } from "~/protocol/event/unlock.client";
 import { readEnvNetwork } from "offckb.config";
+import { joyIdNip07Signer } from "~/protocol/nip/07.client";
 import ExpandableDiv from "./expandable";
 
 export function ConnectNostr() {
@@ -27,7 +28,17 @@ export function ConnectNostr() {
 
   const connect = async () => {
     if (!nostrSigner) {
-      const nip07_signer = new Nip07Signer();
+      const nip07_signer =
+        "nostr" in window
+          ? new Nip07Signer()
+          : readEnvNetwork() !== "devnet"
+          ? new joyIdNip07Signer()
+          : null;
+      if (nip07_signer == null)
+        return alert(
+          "signer not found, please install Nip07 Extension or JoyId Wallet."
+        );
+
       const signer = NostrSigner.nip07(nip07_signer);
       setNostrSigner(signer);
 
@@ -147,7 +158,21 @@ export function ConnectNostr() {
           expandedContent={
             <div className="w-full">
               <div className="text-gray-500">
-              { readEnvNetwork() === "testnet" && <>Get some CKBs From <a href="https://faucet-api.nervos.org/" target="_blank" rel="noopener noreferrer" className="text-purple-500 hover:text-purple-700 underline hover:no-underline">Faucet</a> or</> } Use{" "}
+                {readEnvNetwork() === "testnet" && (
+                  <>
+                    Get some CKBs From{" "}
+                    <a
+                      href="https://faucet-api.nervos.org/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-purple-500 hover:text-purple-700 underline hover:no-underline"
+                    >
+                      Faucet
+                    </a>{" "}
+                    or
+                  </>
+                )}{" "}
+                Use{" "}
                 <a
                   href="https://github.com/RetricSu/offckb?tab=readme-ov-file#usage"
                   target="_blank"
