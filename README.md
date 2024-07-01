@@ -51,12 +51,12 @@ offckb node
 The following dependencies are required for building the Scripts:
 
 * `git`, `make`, `sed`, `bash`, `sha256sum` and others Unix utilities. Refer to the documentation for your operating systems for how to install them. Chances are your system might already have them.
-* `Rust`: latest stable Rust installed via [rustup](https://rustup.rs/) should work. Make sure you have `riscv64` target installed via: `rustup target add riscv64imac-unknown-none-elf`
-* `Clang`: make sure you have clang 16+ installed, sample installtion steps for selected platforms are:
-    + Debian / Ubuntu: `wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && sudo ./llvm.sh 16 && rm llvm.sh`
+* `Rust`: Rust 1.75 installed via [rustup](https://rustup.rs/) should work. Make sure you have `riscv64` target installed via: `rustup target add riscv64imac-unknown-none-elf`
+* `Clang`: make sure you have clang 16+(18 is recommended) installed, sample installation steps for selected platforms are:
+    + Debian / Ubuntu: `wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && sudo ./llvm.sh 18 && rm llvm.sh`
     + Fedora 39+: `sudo dnf -y install clang`
     + Archlinux: `sudo pacman --noconfirm -Syu clang`
-    + macOS: `brew install llvm@16`
+    + macOS: `brew install llvm@18`
     + Windows(with [Scoop](scoop install llvm yasm)): `scoop install llvm yasm`
 
 Run the following commands to build the Scripts:
@@ -74,6 +74,13 @@ cd build/release && ls -hl && cd ../..
 > -rwxr-xr-x  1 staff   170K Jun 28 11:32 nostr-binding
 > -rwxr-xr-x  1 staff   176K Jun 28 11:32 nostr-lock
 ```
+
+Reproducible build via docker:
+```sh
+bash scripts/reproducible_build_docker
+```
+Deploy reproducible binaries on testnet and mainnet.
+
 
 ### 3. Deploy Scripts
 
