@@ -12,7 +12,6 @@ jobs:
     - name: Install
       run: make prepare
     - name: Build
-      run: make build
+      run: bash scripts/reproducible_build_docker
     - name: Run CI
       run: cd tests && cargo test -- --nocapture
-
