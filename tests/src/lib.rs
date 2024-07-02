@@ -47,6 +47,7 @@ pub enum TestSchema {
     WrongGlobalUniqueId2,
     WrongArgsLen,
     WrongSignLen,
+    WrongMultiTypeCell,
     Normal,
 }
 
@@ -434,9 +435,16 @@ pub fn new_type_mint_template(schema: TestSchema) -> (Context, TransactionView, 
         .unwrap();
     // prepare input cell. This cell will be consumed to generated the global
     // unique id.
+    let count: u64 = if schema == TestSchema::WrongMultiTypeCell {
+        2
+    } else {
+        1
+    };
+    const CAPACITY: u64 = 1000;
+
     let input_out_point = context.create_cell(
         packed::CellOutput::new_builder()
-            .capacity(1000u64.pack())
+            .capacity((CAPACITY * count).pack())
             .lock(always_success_script.clone())
             .build(),
         Bytes::new(),
@@ -475,16 +483,30 @@ pub fn new_type_mint_template(schema: TestSchema) -> (Context, TransactionView, 
     args.extend(&global_unique_id);
     assert_eq!(args.len(), 64);
 
+    if schema == TestSchema::WrongArgsLen {
+        args.extend([0u8; 1]);
+    }
+
     let type_script = context
         .build_script(&type_out_point, Bytes::from(args))
         .unwrap();
 
-    let outputs = vec![packed::CellOutput::new_builder()
-        .capacity(1000u64.pack())
-        .lock(always_success_script)
+    let mut outputs = vec![packed::CellOutput::new_builder()
+        .capacity(CAPACITY.pack())
+        .lock(always_success_script.clone())
         .type_(Some(type_script.clone()).pack())
         .build()];
-    let outputs_data = vec![Bytes::new()];
+    let mut outputs_data = vec![Bytes::new()];
+    if schema == TestSchema::WrongMultiTypeCell {
+        outputs.push(
+            packed::CellOutput::new_builder()
+                .capacity(CAPACITY.pack())
+                .lock(always_success_script)
+                .type_(Some(type_script.clone()).pack())
+                .build(),
+        );
+        outputs_data.push(Bytes::new());
+    }
 
     let witness = WitnessArgsBuilder::default()
         .output_type(Some(json).pack())
