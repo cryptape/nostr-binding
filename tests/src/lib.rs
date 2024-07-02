@@ -31,33 +31,46 @@ pub enum TestSchema {
     Normal,
 }
 
+pub struct TestEvent {
+    pub key: Keys,
+    pub created_at: u64,
+    pub kind: u16,
+}
+
+impl TestEvent {
+    pub fn new(key: &Keys) -> Self {
+        Self {
+            key: key.clone(),
+            created_at: unix_time_now(),
+            kind: NOSTR_LOCK_KIND,
+        }
+    }
+
+    pub fn get_event(&self, sighash_all: [u8; 32]) -> Event {
+        let tags = [Tag::custom(
+            TagKind::from(SIGHASH_ALL_TAG_NAME),
+            vec![hex::encode(sighash_all)],
+        )];
+        EventBuilder::new(Kind::from(self.kind), NOSTR_LOCK_CONTENT, tags)
+            .custom_created_at(self.created_at.into())
+            .to_event(&self.key)
+            .unwrap()
+    }
+}
+
 ///
 /// sign a transaction for a nostr lock script, with key, timestamp and witness index
 ///
 pub fn sign_lock_script(
-    key: &Keys,
-    created_at: u64,
+    test_event: TestEvent,
     lock_indexes: Vec<usize>,
     input_len: usize,
     tx: TransactionView,
     schema: TestSchema,
 ) -> TransactionView {
     assert!(lock_indexes.len() > 0);
-    let dummy_sighash_all = [0u8; 32];
-    let tags = [Tag::custom(
-        TagKind::from(SIGHASH_ALL_TAG_NAME),
-        vec![hex::encode(dummy_sighash_all)],
-    )];
-    // when unix timestamp is 9999999999, the time is Sat Nov 20 2286 17:46:39.
-    // So in the coming 200 years, the length of created_at is a static value.
-    // current time, the unix timestamp is around 1719160000
-    let created_at_str = format!("{}", created_at);
-    assert_eq!(created_at_str.len(), 10);
-    let dummy_event: Event =
-        EventBuilder::new(Kind::from(NOSTR_LOCK_KIND), NOSTR_LOCK_CONTENT, tags)
-            .custom_created_at(created_at.into())
-            .to_event(key)
-            .unwrap();
+    let dummy_event = test_event.get_event([0u8; 32]);
+
     let dummy_json = dummy_event.as_json();
     println!("dummy_json = {}", dummy_json);
     let dummy_length = dummy_json.len();
@@ -93,14 +106,7 @@ pub fn sign_lock_script(
         .build();
     let sighash_all = generate_sighash_all(&tx, lock_indexes, input_len);
     println!("sighash_all = {}", hex::encode(&sighash_all));
-    let tags = [Tag::custom(
-        TagKind::from(SIGHASH_ALL_TAG_NAME),
-        vec![hex::encode(sighash_all)],
-    )];
-    let event: Event = EventBuilder::new(Kind::from(NOSTR_LOCK_KIND), NOSTR_LOCK_CONTENT, tags)
-        .custom_created_at(created_at.into())
-        .to_event(key)
-        .unwrap();
+    let event = test_event.get_event(sighash_all);
     let event = if schema == TestSchema::WrongSignature {
         Event::new(
             event.id(),
