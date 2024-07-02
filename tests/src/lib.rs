@@ -1,12 +1,28 @@
 #[cfg(test)]
-mod tests;
+mod tests_lock;
+
+#[cfg(test)]
+mod tests_type;
+
+#[cfg(test)]
+mod tests_both;
 
 use ::hex;
 use ckb_testtool::{
+    builtin::ALWAYS_SUCCESS,
+    ckb_types::{
+        bytes::Bytes,
+        core::{TransactionBuilder, TransactionView},
+        packed::{self, Script, WitnessArgsBuilder},
+        prelude::*,
+    },
+    context::Context,
+};
+use ckb_testtool::{
     ckb_error::Error as CkbError,
     ckb_hash::{Blake2b, Blake2bBuilder},
-    ckb_types::{bytes::Bytes, core::TransactionView, packed, prelude::*},
 };
+use lazy_static::lazy_static;
 use nostr::prelude::*;
 use std::{
     str::FromStr,
@@ -34,14 +50,14 @@ pub enum TestSchema {
     Normal,
 }
 
-pub struct TestEvent {
+pub struct TestConfig {
     pub key: Keys,
     pub created_at: u64,
     pub kind: u16,
     pub lock_content: String,
 }
 
-impl TestEvent {
+impl TestConfig {
     pub fn new(key: &Keys) -> Self {
         Self {
             key: key.clone(),
@@ -63,11 +79,17 @@ impl TestEvent {
     }
 }
 
+impl Default for TestConfig {
+    fn default() -> Self {
+        Self::new(&KEY)
+    }
+}
+
 ///
 /// sign a transaction for a nostr lock script, with key, timestamp and witness index
 ///
 pub fn sign_lock_script(
-    test_event: TestEvent,
+    test_event: TestConfig,
     lock_indexes: Vec<usize>,
     input_len: usize,
     tx: TransactionView,
@@ -381,4 +403,307 @@ pub fn assert_script_error(err: CkbError, err_code: i8) {
         error_string,
         err_code
     );
+}
+
+lazy_static! {
+    static ref NOSTR_LOCK_BIN: Bytes = {
+        let bin = include_bytes!("../../build/release/nostr-lock");
+        bin.to_vec().into()
+    };
+    static ref NOSTR_BINDING_BIN: Bytes = {
+        let bin = include_bytes!("../../build/release/nostr-binding");
+        bin.to_vec().into()
+    };
+    static ref KEY: Keys = {
+        Keys::parse("a9e5f16529cbe055c1f7b6d928b980a2ee0cc0a1f07a8444b85b72b3f1d5c6ba").unwrap()
+    };
+}
+
+///
+/// a nostr type binding mint transaction template
+/// 1 input cell with always success lock script
+/// 1 output cell with nostr type binding type script
+///
+pub fn new_type_mint_template(schema: TestSchema) -> (Context, TransactionView, Script) {
+    let mut context = Context::default();
+    context.set_capture_debug(false);
+    let type_out_point = context.deploy_cell(NOSTR_BINDING_BIN.clone());
+    let always_success_out_point = context.deploy_cell(ALWAYS_SUCCESS.clone());
+    let always_success_script = context
+        .build_script(&always_success_out_point, Bytes::new())
+        .unwrap();
+    // prepare input cell. This cell will be consumed to generated the global
+    // unique id.
+    let input_out_point = context.create_cell(
+        packed::CellOutput::new_builder()
+            .capacity(1000u64.pack())
+            .lock(always_success_script.clone())
+            .build(),
+        Bytes::new(),
+    );
+    let input = packed::CellInput::new_builder()
+        .previous_output(input_out_point.clone())
+        .build();
+
+    let mut blake2b = new_blake2b();
+    blake2b.update(input.as_slice());
+    blake2b.update(&0u64.to_le_bytes());
+    let mut global_unique_id = [0u8; 32];
+    blake2b.finalize(&mut global_unique_id);
+
+    if schema == TestSchema::WrongGlobalUniqueId2 {
+        global_unique_id[0] ^= 1;
+    }
+    let (json, mut id) = type_script_mint(
+        &KEY,
+        unix_time_now(),
+        "hello,world".into(),
+        global_unique_id,
+    );
+    // reset it to correct value
+    if schema == TestSchema::WrongGlobalUniqueId2 {
+        global_unique_id[0] ^= 1;
+    }
+    if schema == TestSchema::WrongId {
+        id[0] ^= 1;
+    }
+    if schema == TestSchema::WrongGlobalUniqueId {
+        global_unique_id[0] ^= 1;
+    }
+    let mut args = vec![];
+    args.extend(&id);
+    args.extend(&global_unique_id);
+    assert_eq!(args.len(), 64);
+
+    let type_script = context
+        .build_script(&type_out_point, Bytes::from(args))
+        .unwrap();
+
+    let outputs = vec![packed::CellOutput::new_builder()
+        .capacity(1000u64.pack())
+        .lock(always_success_script)
+        .type_(Some(type_script.clone()).pack())
+        .build()];
+    let outputs_data = vec![Bytes::new()];
+
+    let witness = WitnessArgsBuilder::default()
+        .output_type(Some(json).pack())
+        .build();
+    let witness = witness.as_bytes();
+    let tx = TransactionBuilder::default()
+        .input(input)
+        .outputs(outputs)
+        .outputs_data(outputs_data.pack())
+        .witness(witness.pack())
+        .build();
+    let tx = context.complete_tx(tx);
+    (context, tx, type_script)
+}
+
+//
+// generate a template transaction:
+// 1 input cell locked by nostr lock script
+// 2 output cells
+//
+pub fn new_lock_template(schema: TestSchema) -> (Context, TransactionView, Script) {
+    let mut context = Context::default();
+    context.set_capture_debug(false);
+    let lock_out_point = context.deploy_cell(NOSTR_LOCK_BIN.clone());
+    let pubkey = KEY.public_key().to_bytes().to_vec();
+    let mut args = [0u8; 21];
+    let pubkey_hash = blake160(&pubkey);
+    (&mut args[1..21]).copy_from_slice(&pubkey_hash);
+    if schema == TestSchema::WrongPubkey {
+        args[1] ^= 1;
+    }
+
+    let args = if schema == TestSchema::WrongArgsLen {
+        Bytes::copy_from_slice(&vec![args.to_vec(), vec![00u8]].concat())
+    } else {
+        Bytes::copy_from_slice(&args)
+    };
+    let lock_script = context
+        .build_script(&lock_out_point, args.into())
+        .expect("lock script");
+
+    // prepare input cells
+    let input_out_point = context.create_cell(
+        packed::CellOutput::new_builder()
+            .capacity(1000u64.pack())
+            .lock(lock_script.clone())
+            .build(),
+        Bytes::new(),
+    );
+    let input = packed::CellInput::new_builder()
+        .previous_output(input_out_point.clone())
+        .build();
+
+    let outputs = vec![
+        packed::CellOutput::new_builder()
+            .capacity(500u64.pack())
+            .lock(lock_script.clone())
+            .build(),
+        packed::CellOutput::new_builder()
+            .capacity(500u64.pack())
+            .lock(lock_script.clone())
+            .build(),
+    ];
+
+    let outputs_data = vec![Bytes::new(), Bytes::new()];
+
+    let tx = TransactionBuilder::default()
+        .input(input)
+        .outputs(outputs)
+        .outputs_data(outputs_data.pack())
+        .witness(Bytes::new().pack())
+        .build();
+    let tx = context.complete_tx(tx);
+    (context, tx, lock_script)
+}
+
+//
+// generate a template transaction:
+// 1 input cell locked by nostr lock script. Unlocked by PoW method.
+// 2 output cells
+//
+pub fn new_lock_pow_template(_schema: TestSchema) -> (Context, TransactionView, u8) {
+    let pow_difficult = 3;
+    let mut context = Context::default();
+    context.set_capture_debug(false);
+    let lock_out_point = context.deploy_cell(NOSTR_LOCK_BIN.clone());
+    let mut args = [0u8; 21];
+    // Set PoW difficulty
+    args[0] = pow_difficult;
+
+    let args = Bytes::copy_from_slice(&args);
+    let lock_script = context
+        .build_script(&lock_out_point, args.into())
+        .expect("lock script");
+
+    // prepare input cells
+    let input_out_point = context.create_cell(
+        packed::CellOutput::new_builder()
+            .capacity(1000u64.pack())
+            .lock(lock_script.clone())
+            .build(),
+        Bytes::new(),
+    );
+    let input = packed::CellInput::new_builder()
+        .previous_output(input_out_point.clone())
+        .build();
+
+    let outputs = vec![
+        packed::CellOutput::new_builder()
+            .capacity(500u64.pack())
+            .lock(lock_script.clone())
+            .build(),
+        packed::CellOutput::new_builder()
+            .capacity(500u64.pack())
+            .lock(lock_script.clone())
+            .build(),
+    ];
+
+    let outputs_data = vec![Bytes::new(), Bytes::new()];
+
+    let tx = TransactionBuilder::default()
+        .input(input)
+        .outputs(outputs)
+        .outputs_data(outputs_data.pack())
+        .witness(Bytes::new().pack())
+        .build();
+    let tx = context.complete_tx(tx);
+    (context, tx, pow_difficult)
+}
+
+pub fn new_both_template(schema: TestSchema) -> (Context, TransactionView, Script) {
+    let mut context = Context::default();
+    context.set_capture_debug(false);
+    let type_out_point = context.deploy_cell(NOSTR_BINDING_BIN.clone());
+    let lock_out_point = context.deploy_cell(NOSTR_LOCK_BIN.clone());
+    let pubkey = KEY.public_key().to_bytes().to_vec();
+    let pubkey_hash = blake160(&pubkey);
+    let mut args = [0u8; 21];
+    (&mut args[1..21]).copy_from_slice(&pubkey_hash);
+    let lock_script = context
+        .build_script(&lock_out_point, Bytes::copy_from_slice(&args))
+        .expect("lock script");
+
+    // prepare input cell. This cell will be consumed to generated the global
+    // unique id.
+    let input_out_point = context.create_cell(
+        packed::CellOutput::new_builder()
+            .capacity(1000u64.pack())
+            .lock(lock_script.clone())
+            .build(),
+        Bytes::new(),
+    );
+    let input = packed::CellInput::new_builder()
+        .previous_output(input_out_point.clone())
+        .build();
+
+    let mut blake2b = new_blake2b();
+    blake2b.update(input.as_slice());
+    blake2b.update(&0u64.to_le_bytes());
+    let mut global_unique_id = [0u8; 32];
+    blake2b.finalize(&mut global_unique_id);
+
+    if schema == TestSchema::WrongGlobalUniqueId2 {
+        global_unique_id[0] ^= 1;
+    }
+    let (json, mut id) = type_script_mint(
+        &KEY,
+        unix_time_now(),
+        "hello,world".into(),
+        global_unique_id,
+    );
+    // reset it to correct value
+    if schema == TestSchema::WrongGlobalUniqueId2 {
+        global_unique_id[0] ^= 1;
+    }
+    if schema == TestSchema::WrongId {
+        id[0] ^= 1;
+    }
+    if schema == TestSchema::WrongGlobalUniqueId {
+        global_unique_id[0] ^= 1;
+    }
+    let mut args = vec![];
+    args.extend(&id);
+    args.extend(&global_unique_id);
+    assert_eq!(args.len(), 64);
+
+    let type_script = context
+        .build_script(&type_out_point, Bytes::from(args))
+        .unwrap();
+
+    let outputs = vec![packed::CellOutput::new_builder()
+        .capacity(1000u64.pack())
+        .lock(lock_script)
+        .type_(Some(type_script.clone()).pack())
+        .build()];
+    let outputs_data = vec![Bytes::new()];
+
+    let witness = WitnessArgsBuilder::default()
+        .output_type(Some(json).pack())
+        .build();
+    let witness = witness.as_bytes();
+    let tx = TransactionBuilder::default()
+        .input(input)
+        .outputs(outputs)
+        .outputs_data(outputs_data.pack())
+        .witness(witness.pack())
+        .build();
+    let tx = context.complete_tx(tx);
+    (context, tx, type_script)
+}
+
+pub fn get_witness(tx: &TransactionView, index: usize) -> Vec<u8> {
+    let ws: Vec<Bytes> = tx.witnesses().into_iter().map(|f| f.as_bytes()).collect();
+    let w = ws.get(index).unwrap();
+    w.to_vec()[4..].to_vec()
+}
+
+pub fn update_witness(tx: TransactionView, index: usize, w: Bytes) -> TransactionView {
+    let mut ws: Vec<packed::Bytes> = tx.witnesses().into_iter().map(|f| f.into()).collect();
+    ws[index] = w.pack();
+    tx.as_advanced_builder().set_witnesses(ws).build()
 }
