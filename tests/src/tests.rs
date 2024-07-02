@@ -128,7 +128,11 @@ fn new_lock_template(schema: TestSchema) -> (Context, TransactionView, Script) {
         args[1] ^= 1;
     }
 
-    let args = Bytes::copy_from_slice(&args);
+    let args = if schema == TestSchema::WrongArgsLen {
+        Bytes::copy_from_slice(&vec![args.to_vec(), vec![00u8]].concat())
+    } else {
+        Bytes::copy_from_slice(&args)
+    };
     let lock_script = context
         .build_script(&lock_out_point, args.into())
         .expect("lock script");
@@ -376,7 +380,7 @@ fn test_mint_failed_wrong_global_unique_id2() {
 }
 
 #[test]
-fn test_unlock_lock_incorrect_json() {
+fn test_unlock_failed_json() {
     let (context, tx, _) = new_lock_template(TestSchema::Normal);
     let tx = sign_lock_script(TestEvent::new(&KEY), vec![0], 1, tx, TestSchema::Normal);
 
@@ -437,7 +441,7 @@ fn test_unlock_no_tags() {
 }
 
 #[test]
-fn test_unlock_incorrect_tag_info() {
+fn test_unlock_failed_tag_info() {
     let (context, tx, _) = new_lock_template(TestSchema::Normal);
     let tx = sign_lock_script(TestEvent::new(&KEY), vec![0], 1, tx, TestSchema::Normal);
 
@@ -476,7 +480,7 @@ fn test_unlock_incorrect_tag_info() {
 }
 
 #[test]
-fn test_unlock_incorrect_event_id() {
+fn test_unlock_failed_event_id() {
     let (context, tx, _) = new_lock_template(TestSchema::Normal);
     let tx = sign_lock_script(TestEvent::new(&KEY), vec![0], 1, tx, TestSchema::Normal);
 
@@ -522,50 +526,171 @@ fn test_unlock_incorrect_event_id() {
 }
 
 #[test]
-fn test_unlock_incorrect_kind() {
-    // TODO
-    // let (context, tx, _) = new_lock_template(TestSchema::Normal);
-    // let mut event = TestEvent::new(&KEY);
-    // event.kind += 1;
-    // let tx = sign_lock_script(event, vec![0], 1, tx, TestSchema::Normal);
+fn test_unlock_failed_kind() {
+    let (context, tx, _) = new_lock_template(TestSchema::Normal);
+    let mut event = TestEvent::new(&KEY);
+    event.kind += 1;
+    let tx = sign_lock_script(event, vec![0], 1, tx, TestSchema::Normal);
 
-    // let witnesses = tx.witnesses();
-    // let mut witnesses: Vec<Bytes> = witnesses.into_iter().map(|f| f.as_bytes()).collect();
+    let result = context.verify_tx(&tx, MAX_CYCLES);
+    assert_script_error(result.err().unwrap(), 12); // KindMismatched
+}
 
-    // let witness = packed::WitnessArgs::from_slice(&witnesses[0].to_vec()[4..])
-    //     .unwrap()
-    //     .lock()
-    //     .to_opt()
-    //     .unwrap()
-    //     .as_slice()[4..]
-    //     .to_vec();
+#[test]
+fn test_unlock_failed_content() {
+    let (context, tx, _) = new_lock_template(TestSchema::Normal);
+    let mut event = TestEvent::new(&KEY);
+    event.lock_content = "Test a CKB transaction\n\nIMPORTANT: Please verify the integrity and authenticity of connected Nostr client before signing this message\n".to_string();
+    let tx = sign_lock_script(event, vec![0], 1, tx, TestSchema::Normal);
 
-    // let witness = String::from_utf8(witness).unwrap();
+    let result = context.verify_tx(&tx, MAX_CYCLES);
+    assert_script_error(result.err().unwrap(), 13); // ContentMismatched
+}
 
-    // let mut v = serde_json::from_str::<serde_json::Value>(&witness).unwrap();
+#[test]
+fn test_unlock_failed_args_len() {
+    let (context, tx, _) = new_lock_template(TestSchema::WrongArgsLen);
 
-    // if let Some(obj) = v.as_object_mut() {
-    //     obj.insert(
-    //         "id".to_string(),
-    //         serde_json::json!("00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"),
-    //     );
-    // }
+    let event = TestEvent::new(&KEY);
+    let tx = sign_lock_script(event, vec![0], 1, tx, TestSchema::Normal);
 
-    // let witness = serde_json::to_string(&v).unwrap().as_bytes().to_vec();
+    let result = context.verify_tx(&tx, MAX_CYCLES);
+    assert_script_error(result.err().unwrap(), 15); // InvalidScriptArgs
+}
 
-    // let witness = packed::WitnessArgs::default()
-    //     .as_builder()
-    //     .lock(Some(Bytes::from(witness)).pack())
-    //     .build()
-    //     .as_bytes();
+#[test]
+fn test_unlock_empty_witness() {
+    let (context, tx, _) = new_lock_template(TestSchema::Normal);
+    let tx = sign_lock_script(TestEvent::new(&KEY), vec![0], 1, tx, TestSchema::Normal);
 
-    // witnesses[0] = witness;
+    let witnesses = tx.witnesses();
+    let mut witnesses: Vec<Bytes> = witnesses.into_iter().map(|f| f.as_bytes()).collect();
 
-    // let tx = tx
-    //     .as_advanced_builder()
-    //     .set_witnesses(witnesses.iter().map(|f| f.pack()).collect())
-    //     .build();
+    let witness = packed::WitnessArgs::default()
+        .as_builder()
+        .lock(Some(Bytes::new()).pack())
+        .build()
+        .as_bytes();
 
-    // let result = context.verify_tx(&tx, MAX_CYCLES);
-    // assert_script_error(result.err().unwrap(), 12); // KindMismatched
+    witnesses[0] = witness;
+
+    let tx = tx
+        .as_advanced_builder()
+        .set_witnesses(witnesses.iter().map(|f| f.pack()).collect())
+        .build();
+
+    let result = context.verify_tx(&tx, MAX_CYCLES);
+    assert_script_error(result.err().unwrap(), 21);
+}
+
+#[test]
+fn test_unlock_empty_witnesses() {
+    let (context, tx, _) = new_lock_template(TestSchema::Normal);
+    let tx = sign_lock_script(TestEvent::new(&KEY), vec![0], 1, tx, TestSchema::Normal);
+    let tx = tx.as_advanced_builder().set_witnesses(Vec::new()).build();
+
+    let result = context.verify_tx(&tx, MAX_CYCLES);
+    assert_script_error(result.err().unwrap(), 1);
+}
+
+#[test]
+fn test_unlock_failed_sign_format() {
+    let (context, tx, _) = new_lock_template(TestSchema::Normal);
+    let tx = sign_lock_script(TestEvent::new(&KEY), vec![0], 1, tx, TestSchema::Normal);
+
+    let mut witnesses: Vec<Bytes> = tx.witnesses().into_iter().map(|f| f.as_bytes()).collect();
+    let witness = packed::WitnessArgs::from_slice(&witnesses[0].to_vec()[4..])
+        .unwrap()
+        .lock()
+        .to_opt()
+        .unwrap()
+        .as_slice()[4..]
+        .to_vec();
+
+    let mut witness =
+        serde_json::from_str::<serde_json::Value>(&String::from_utf8(witness).unwrap()).unwrap();
+
+    // let sig = witness.get("sig").unwrap().as_str().unwrap();
+    if let Some(obj) = witness.as_object_mut() {
+        obj.insert(
+            "sig".to_string(),
+            serde_json::json!("yy112233445566778899aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"),
+        );
+    }
+
+    let witness = serde_json::to_string(&witness).unwrap().as_bytes().to_vec();
+
+    let witness = packed::WitnessArgs::default()
+        .as_builder()
+        .lock(Some(Bytes::from(witness)).pack())
+        .build()
+        .as_bytes();
+
+    witnesses[0] = witness;
+
+    let tx = tx
+        .as_advanced_builder()
+        .set_witnesses(witnesses.iter().map(|f| f.pack()).collect())
+        .build();
+
+    let tx = tx
+        .as_advanced_builder()
+        .set_witnesses(witnesses.iter().map(|f| f.pack()).collect())
+        .build();
+
+    let result = context.verify_tx(&tx, MAX_CYCLES);
+    assert_script_error(result.err().unwrap(), 19); // InvalidSignatureFormat
+}
+
+#[test]
+fn test_unlock_failed_sign_format2() {
+    let (context, tx, _) = new_lock_template(TestSchema::Normal);
+    let event = TestEvent::new(&KEY);
+    let tx = sign_lock_script(event, vec![0], 1, tx, TestSchema::WrongSignLen);
+
+    let mut witnesses: Vec<Bytes> = tx.witnesses().into_iter().map(|f| f.as_bytes()).collect();
+    let witness = packed::WitnessArgs::from_slice(&witnesses[0].to_vec()[4..])
+        .unwrap()
+        .lock()
+        .to_opt()
+        .unwrap()
+        .as_slice()[4..]
+        .to_vec();
+
+    let mut witness =
+        serde_json::from_str::<serde_json::Value>(&String::from_utf8(witness).unwrap()).unwrap();
+
+    // let sig = witness.get("sig").unwrap().as_str().unwrap();
+    if let Some(obj) = witness.as_object_mut() {
+        obj.insert(
+            "sig".to_string(),
+            serde_json::json!("112233445566778899aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"),
+        );
+    }
+
+    let witness = serde_json::to_string(&witness).unwrap();
+    println!("==== witness: {}", witness);
+
+    let witness = witness.as_bytes().to_vec();
+
+    let witness = packed::WitnessArgs::default()
+        .as_builder()
+        .lock(Some(Bytes::from(witness)).pack())
+        .build()
+        .as_bytes();
+
+    witnesses[0] = witness;
+
+    let tx = tx
+        .as_advanced_builder()
+        .set_witnesses(witnesses.iter().map(|f| f.pack()).collect())
+        .build();
+
+    let tx = tx
+        .as_advanced_builder()
+        .set_witnesses(witnesses.iter().map(|f| f.pack()).collect())
+        .build();
+
+    let result = context.verify_tx(&tx, MAX_CYCLES);
+    assert_script_error(result.err().unwrap(), 19); // InvalidSignatureFormat
 }

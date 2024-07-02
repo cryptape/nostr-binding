@@ -25,9 +25,12 @@ pub const GLOBAL_UNIQUE_ID_TAG_NAME: &str = "ckb_global_unique_id";
 pub enum TestSchema {
     WrongPubkey,
     WrongSignature,
+    WrongSignatureFormat,
     WrongId,
     WrongGlobalUniqueId,
     WrongGlobalUniqueId2,
+    WrongArgsLen,
+    WrongSignLen,
     Normal,
 }
 
@@ -35,6 +38,7 @@ pub struct TestEvent {
     pub key: Keys,
     pub created_at: u64,
     pub kind: u16,
+    pub lock_content: String,
 }
 
 impl TestEvent {
@@ -43,6 +47,7 @@ impl TestEvent {
             key: key.clone(),
             created_at: unix_time_now(),
             kind: NOSTR_LOCK_KIND,
+            lock_content: NOSTR_LOCK_CONTENT.to_string(),
         }
     }
 
@@ -51,7 +56,7 @@ impl TestEvent {
             TagKind::from(SIGHASH_ALL_TAG_NAME),
             vec![hex::encode(sighash_all)],
         )];
-        EventBuilder::new(Kind::from(self.kind), NOSTR_LOCK_CONTENT, tags)
+        EventBuilder::new(Kind::from(self.kind), &self.lock_content, tags)
             .custom_created_at(self.created_at.into())
             .to_event(&self.key)
             .unwrap()
@@ -73,7 +78,7 @@ pub fn sign_lock_script(
 
     let dummy_json = dummy_event.as_json();
     println!("dummy_json = {}", dummy_json);
-    let dummy_length = dummy_json.len();
+    let mut dummy_length = dummy_json.len();
     println!("dummy_length = {}", dummy_length);
     let witness_index = lock_indexes[0];
     // make a dummy witness to generate correct sighash_all
@@ -89,6 +94,10 @@ pub fn sign_lock_script(
                 } else {
                     packed::WitnessArgs::new_unchecked(witness)
                 };
+                if schema == TestSchema::WrongSignLen {
+                    dummy_length -= 2;
+                }
+
                 let dummy_lock: Bytes = vec![0u8; dummy_length].into();
                 let witness_args = witness_args
                     .as_builder()
@@ -133,7 +142,6 @@ pub fn sign_lock_script(
                 let lock: Bytes = event_json.clone().into();
                 let witness: Bytes = witness.unpack();
                 let witness_args = packed::WitnessArgs::new_unchecked(witness);
-                assert_eq!(witness_args.lock().to_opt().unwrap().len(), lock.len());
                 let witness_args = witness_args.as_builder().lock(Some(lock).pack()).build();
                 witness_args.as_bytes().pack()
             } else {
