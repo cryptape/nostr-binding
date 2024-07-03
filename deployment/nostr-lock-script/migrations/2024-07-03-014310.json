@@ -1,0 +1,13 @@
+{
+  "cell_recipes": [
+    {
+      "name": "nostr-lock",
+      "tx_hash": "0xa2a434dcdbe280b9ed75bb7d6c7d68186a842456aba0fc506657dc5ed7c01d68",
+      "index": 0,
+      "occupied_capacity": 20263000000000,
+      "data_hash": "0x2effea19ff3024b5b0fb4c0c59c379e7610110e7e3fe7ae003247b1115e59795",
+      "type_id": "0x6ae5ee0cb887b2df5a9a18137315b9bdc55be8d52637b2de0624092d5f0c91d5"
+    }
+  ],
+  "dep_group_recipes": []
+}

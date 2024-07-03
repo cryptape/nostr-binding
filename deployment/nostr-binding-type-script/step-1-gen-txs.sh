@@ -1,5 +1,6 @@
 
 #!/bin/bash
+cd ../.. && shasum -a 256 -c checksums.txt && cd deployment/nostr-binding-type-script
 
 ckb-cli deploy gen-txs \
     --deployment-config ./deployment.toml \

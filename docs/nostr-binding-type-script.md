@@ -149,7 +149,7 @@ An implementation of the nostr lock script spec above has been deployed to CKB m
 | ----------- | -------------------------------------------------------------------- |
 | `code_hash` | 0x4105801324b70b3a1508ded8958aba66a6faf68cab26f863b4902b50dfb8b9ab   |
 | `hash_type` | `type`                                                               |
-| `tx_hash`   | 0x10b5f9f005a7d8004e4b47bb5e05da8aa6de57922105e238cb2b0b2ec20a0a72   |
+| `tx_hash`   | 0x0e3949fa8afbbdf6d4abdda0d12ac1206c8d05dd51ec490b7341586291db85a6   |
 | `index`     | `0x0`                                                                |
 | `dep_type`  | `code`                                                               |
 
