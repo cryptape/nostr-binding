@@ -127,3 +127,36 @@ Outputs:
 Witnesses:
     <...>
 ```
+
+
+## Notes
+
+An implementation of the nostr lock script spec above has been deployed to CKB mainnet and testnet:
+
+- mainnet
+
+| parameter   | value                                                                |
+| ----------- | -------------------------------------------------------------------- |
+| `code_hash` | TODO   |
+| `hash_type` | `type`                                                               |
+| `tx_hash`   | TODO   |
+| `index`     | `0x0`                                                                |
+| `dep_type`  | `code`                                                               |
+
+- testnet
+
+| parameter   | value                                                                |
+| ----------- | -------------------------------------------------------------------- |
+| `code_hash` | 0x4105801324b70b3a1508ded8958aba66a6faf68cab26f863b4902b50dfb8b9ab   |
+| `hash_type` | `type`                                                               |
+| `tx_hash`   | 0x10b5f9f005a7d8004e4b47bb5e05da8aa6de57922105e238cb2b0b2ec20a0a72   |
+| `index`     | `0x0`                                                                |
+| `dep_type`  | `code`                                                               |
+
+Reproducible build is supported to verify the deploy script. To build the deployed the script above, one can use the following steps:
+
+```bash
+git clone https://github.com/cryptape/nostr-binding.git
+cd nostr-binding
+bash scripts/reproducible_build_docker
+```

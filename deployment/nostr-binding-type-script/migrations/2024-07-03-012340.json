@@ -1,0 +1,13 @@
+{
+  "cell_recipes": [
+    {
+      "name": "nostr-binding",
+      "tx_hash": "0x10b5f9f005a7d8004e4b47bb5e05da8aa6de57922105e238cb2b0b2ec20a0a72",
+      "index": 0,
+      "occupied_capacity": 20015800000000,
+      "data_hash": "0x6694d6a1d78172b31a474fe1a1c085b7e48a28f63f9f4135ce4abc458962ddfe",
+      "type_id": "0x4105801324b70b3a1508ded8958aba66a6faf68cab26f863b4902b50dfb8b9ab"
+    }
+  ],
+  "dep_group_recipes": []
+}
