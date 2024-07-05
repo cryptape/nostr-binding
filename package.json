@@ -7,7 +7,8 @@
     "packages/*"
   ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "chore": "pnpm -r run lint && pnpm -r run fmt && pnpm -r run build"
   },
   "keywords": [],
   "author": "",
