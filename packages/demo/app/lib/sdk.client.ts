@@ -2,7 +2,7 @@ import {
   NostrBindingConfig,
   NostrBindingSDK,
   TESTNET_CONFIGS,
-} from "@nostr-binding/sdk";
+} from "../../node_modules/@nostr-binding/sdk";
 import offCKBConfig, { readEnvNetwork } from "offckb.config";
 
 export const DEVNET_CONFIGS: NostrBindingConfig = {

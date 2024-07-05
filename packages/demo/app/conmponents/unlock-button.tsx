@@ -4,7 +4,7 @@ import { SingerContext } from "~/context/signer";
 import offCKB from "offckb.config";
 import { buildUnlockCKBTransaction, buildDeadLock } from "~/lib/ckb.client";
 import { Event } from "@rust-nostr/nostr-sdk";
-import { TagName } from "@nostr-binding/sdk";
+import { TagName } from "../../node_modules/@nostr-binding/sdk";
 import { sdk } from "~/lib/sdk.client";
 
 export interface UnlockButtonProp {

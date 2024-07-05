@@ -4,7 +4,7 @@ import { ReactNode, useContext } from "react";
 import { SingerContext } from "~/context/signer";
 import offCKB from "offckb.config";
 import { Event } from "@rust-nostr/nostr-sdk";
-import { jsonStringToBytes } from "@nostr-binding/sdk";
+import { jsonStringToBytes } from "../../node_modules/@nostr-binding/sdk";
 import { buildMintTransaction } from "~/lib/ckb.client";
 import { helpers } from "@ckb-lumos/lumos";
 
