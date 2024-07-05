@@ -161,10 +161,6 @@ export class NostrLock {
 
     if (witness !== '0x') {
       const witnessArgs = blockchain.WitnessArgs.unpack(bytes.bytify(witness));
-      const lock = witnessArgs.lock;
-      if (lock && newWitnessArgs.lock && !bytes.equal(lock, newWitnessArgs.lock)) {
-        throw new Error('Lock field in first witness is set aside for signature!');
-      }
       const inputType = witnessArgs.inputType;
       if (inputType) {
         newWitnessArgs.inputType = inputType;
