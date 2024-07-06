@@ -13,18 +13,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # Fetch all tags and branches
-
-      - name: Set up git configuration
-        run: |
-          git fetch --tags --prune --unshallow
-          git checkout ${{ github.ref }} # Ensure HEAD is on the correct tag
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
-          registry-url: 'https://registry.npmjs.org'
+          node-version: "20.x"
+          registry-url: "https://registry.npmjs.org"
 
       - uses: pnpm/action-setup@v4
         name: Install -g pnpm
