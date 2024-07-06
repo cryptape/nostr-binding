@@ -1,6 +1,7 @@
 import { NostrBindingSDK, TESTNET_CONFIGS } from '../src/index';
 import { blockchain } from '@ckb-lumos/base';
 import { bytes } from '@ckb-lumos/codec';
+import { Transaction, WitnessArgs } from '@ckb-lumos/lumos';
 
 describe('Nostr Lock', () => {
   test('Build Lock Script', () => {
@@ -35,5 +36,89 @@ describe('Nostr Lock', () => {
     const witnessArgs = blockchain.WitnessArgs.unpack(bytes.bytify(witness));
     const event = sdk.lock.parseUnlockEventFromWitnessArgs(witnessArgs);
     expect(event?.id.toHex()).toBe('6a2c18fffa538d421242979d570705d1dd3bfbd5a7fb555973de8a9063696f33');
+  });
+
+  test('Build 2-inputs SighashAll', () => {
+    const sdk = new NostrBindingSDK(TESTNET_CONFIGS);
+    const dummyLock = '0x' + '00'.repeat(572);
+    const newWitnessArgs: WitnessArgs = {
+      lock: dummyLock,
+    };
+    const tx: Transaction = {
+      version: '0x0',
+      cellDeps: [
+        {
+          outPoint: {
+            txHash: '0xbf6fb538763efec2a70a6a3dcb7242787087e1030c4e7d86585bc63a9d337f5f',
+            index: '0x0',
+          },
+          depType: 'code',
+        },
+        {
+          outPoint: {
+            txHash: '0xa2a434dcdbe280b9ed75bb7d6c7d68186a842456aba0fc506657dc5ed7c01d68',
+            index: '0x0',
+          },
+          depType: 'code',
+        },
+      ],
+      headerDeps: [],
+      inputs: [
+        {
+          previousOutput: {
+            txHash: '0xf6cd8c036f0924f89a4ba9ed4e8bdd20ef356fd5ef014994214f041c0625a975',
+            index: '0x0',
+          },
+          since: '0x0',
+        },
+        {
+          previousOutput: {
+            txHash: '0x1f1da9a4c6cc17fb7a9a238ab4b783ca428293b1d28fe384097dd52a35283136',
+            index: '0x1',
+          },
+          since: '0x0',
+        },
+      ],
+      outputs: [
+        {
+          lock: {
+            codeHash: '0x6ae5ee0cb887b2df5a9a18137315b9bdc55be8d52637b2de0624092d5f0c91d5',
+            hashType: 'type',
+            args: '0x003f4ce62974e70f74e98ecc59f0c2f00067cb8879',
+          },
+          type: {
+            codeHash: '0x25c29dc317811a6f6f3985a7a9ebc4838bd388d19d0feeecf0bcd60f6c0975bb',
+            hashType: 'type',
+            args: '0x8cb223d3e2a07e60179bc9e95106b0a99c4bd859c2902338714dd736474dffe9',
+          },
+          capacity: '0x35458af00',
+        },
+        {
+          lock: {
+            codeHash: '0x6ae5ee0cb887b2df5a9a18137315b9bdc55be8d52637b2de0624092d5f0c91d5',
+            hashType: 'type',
+            args: '0x004f1ae79592b8a82df8d1ef93361160966d718015',
+          },
+          type: {
+            codeHash: '0x25c29dc317811a6f6f3985a7a9ebc4838bd388d19d0feeecf0bcd60f6c0975bb',
+            hashType: 'type',
+            args: '0x8cb223d3e2a07e60179bc9e95106b0a99c4bd859c2902338714dd736474dffe9',
+          },
+          capacity: '0x35458af00',
+        },
+        {
+          lock: {
+            codeHash: '0x6ae5ee0cb887b2df5a9a18137315b9bdc55be8d52637b2de0624092d5f0c91d5',
+            hashType: 'type',
+            args: '0x004f1ae79592b8a82df8d1ef93361160966d718015',
+          },
+          capacity: '0xd9dc10d6b4',
+        },
+      ],
+      outputsData: ['0x20a10700000000000000000000000000', '0x20a10700000000000000000000000000', '0x'],
+      witnesses: [bytes.hexify(blockchain.WitnessArgs.pack(newWitnessArgs)), '0x'],
+    };
+    const sigHashAll = sdk.lock.buildSigHashAll(tx, [0, 1]).slice(2);
+    expect(sigHashAll).toBe('abbd1be2fe6b710eeeec8aa6c84930d4eeb8680698840f95f8c58c4a40ad40db');
   });
 });

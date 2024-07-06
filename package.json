@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "chore": "pnpm -r run fmt && pnpm -r run lint && pnpm -r run test && pnpm -r run build"
+    "chore": "pnpm i && pnpm -r run fmt && pnpm -r run lint && pnpm -r run test && pnpm -r run build"
   },
   "keywords": [],
   "author": "",
