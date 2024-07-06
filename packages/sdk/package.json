@@ -1,6 +1,6 @@
 {
   "name": "@nostr-binding/sdk",
-  "version": "0.1.0-rc2",
+  "version": "0.1.0-rc3",
   "description": "sdk for nostr-binding protocol",
   "scripts": {
     "build": "tsc",
