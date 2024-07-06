@@ -3,7 +3,7 @@ import { ScriptConfig } from '@ckb-lumos/lumos/config';
 import { TESTNET_CONFIGS } from './config';
 import { TagName } from './tag';
 import { bytesToJsonString, jsonStringToBytes } from './util';
-import { blockchain } from '@ckb-lumos/base';
+import { blockchain, Transaction } from '@ckb-lumos/base';
 import { bytes, number } from '@ckb-lumos/codec';
 import { Event, Timestamp } from '@rust-nostr/nostr-sdk';
 
@@ -172,8 +172,8 @@ export class NostrLock {
     }
     witness = bytes.hexify(blockchain.WitnessArgs.pack(newWitnessArgs));
     txSkeleton = txSkeleton.update('witnesses', (witnesses) => witnesses.set(witnessIndex, witness));
-
-    const sigHashAll = this.buildSigHashAll(txSkeleton, lockIndexes);
+    const tx = helpers.createTransactionFromSkeleton(txSkeleton);
+    const sigHashAll = this.buildSigHashAll(tx, lockIndexes);
     console.debug('sighash_all = ', sigHashAll);
 
     const event = this.buildUnlockEvent(sigHashAll);
@@ -196,11 +196,10 @@ export class NostrLock {
     return txSkeleton;
   }
 
-  buildSigHashAll(txSkeleton: helpers.TransactionSkeletonType, lockIndexes: Array<number>) {
-    const tx = helpers.createTransactionFromSkeleton(txSkeleton);
+  buildSigHashAll(tx: Transaction, lockIndexes: Array<number>): HexString {
     const txHash = utils.ckbHash(blockchain.RawTransaction.pack(tx));
-    const inputs = txSkeleton.get('inputs');
-    const witness = txSkeleton.witnesses.get(lockIndexes[0]);
+    const inputs = tx.inputs;
+    const witness = tx.witnesses[lockIndexes[0]];
     if (witness == null) throw new Error('not get lock index!');
 
     let count = 0;
@@ -209,7 +208,7 @@ export class NostrLock {
     hasher.update(txHash);
     count += 32;
 
-    const witnessLength = bytes.bytify(witness).length;
+    const witnessLength = bytes.bytify(witness).byteLength;
     hasher.update(bytes.hexify(Uint64.pack(witnessLength)));
     count += 8;
     hasher.update(witness);
@@ -217,10 +216,10 @@ export class NostrLock {
 
     // group
     if (lockIndexes.length > 1) {
-      for (const index of lockIndexes) {
-        const witness = txSkeleton.witnesses.get(lockIndexes[index]);
+      for (let i = 1; i < lockIndexes.length; i++) {
+        const witness = tx.witnesses[lockIndexes[i]];
         if (witness == null) throw new Error('not get lock index!');
-        const witnessLength = bytes.bytify(witness).length;
+        const witnessLength = bytes.bytify(witness).byteLength;
         hasher.update(bytes.hexify(Uint64.pack(witnessLength)));
         count += 8;
         hasher.update(witness);
@@ -228,13 +227,13 @@ export class NostrLock {
       }
     }
 
-    const witnessSize = txSkeleton.witnesses.size;
+    const witnessSize = tx.witnesses.length;
 
-    if (inputs.size < witnessSize) {
-      for (let j = inputs.size; j < witnessSize; j++) {
-        const witness = txSkeleton.witnesses.get(j);
+    if (inputs.length < witnessSize) {
+      for (let j = inputs.length; j < witnessSize; j++) {
+        const witness = tx.witnesses[j];
         if (witness == null) throw new Error('not get lock index!');
-        const witnessLength = bytes.bytify(witness).length;
+        const witnessLength = bytes.bytify(witness).byteLength;
         hasher.update(bytes.hexify(Uint64.pack(witnessLength)));
         count += 8;
         hasher.update(witness);
@@ -243,7 +242,7 @@ export class NostrLock {
     }
 
     const message = hasher.digestHex();
-    console.debug(`Hashed ${count} bytes in sighash_all`, message.length);
+    console.debug(`Hashed ${count} bytes in sighash_all: `, message);
     return message;
   }
 
