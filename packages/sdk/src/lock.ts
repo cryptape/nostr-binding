@@ -152,35 +152,13 @@ export class NostrLock {
       throw new Error('there is no nostr lock input.');
     }
 
-    console.debug('lockIndexes:', lockIndexes);
-    const dummyEvent = this.buildDummyEvent();
-    const dummyLength = jsonStringToBytes(dummyEvent).length;
-    console.debug('dummyEvent and length: ', dummyEvent, dummyLength);
-
     const witnessIndex = lockIndexes[0];
-    const dummyLock = '0x' + '00'.repeat(dummyLength);
-    const newWitnessArgs: WitnessArgs = {
-      lock: dummyLock,
-    };
-
     while (witnessIndex >= transaction.witnesses.length) {
       transaction.witnesses.push('0x');
     }
 
     let witness: string = transaction.witnesses[witnessIndex]!;
-
-    if (witness !== '0x') {
-      const witnessArgs = blockchain.WitnessArgs.unpack(bytes.bytify(witness));
-      const inputType = witnessArgs.inputType;
-      if (inputType) {
-        newWitnessArgs.inputType = inputType;
-      }
-      const outputType = witnessArgs.outputType;
-      if (outputType) {
-        newWitnessArgs.outputType = outputType;
-      }
-    }
-    witness = bytes.hexify(blockchain.WitnessArgs.pack(newWitnessArgs));
+    witness = this.fillInDummyLockWitness(witness);
     transaction.witnesses[witnessIndex] = witness;
     const sigHashAll = this.buildSigHashAll(transaction, lockIndexes);
     console.debug('sighash_all = ', sigHashAll);
@@ -253,6 +231,34 @@ export class NostrLock {
     const message = hasher.digestHex();
     console.debug(`Hashed ${count} bytes in sighash_all: `, message);
     return message;
+  }
+
+  fillInDummyLockWitness(witness: string) {
+    const newWitnessArgs: WitnessArgs = {
+      lock: this.buildDummyLock(),
+    };
+
+    if (witness !== '0x') {
+      const witnessArgs = blockchain.WitnessArgs.unpack(bytes.bytify(witness));
+      const inputType = witnessArgs.inputType;
+      if (inputType) {
+        newWitnessArgs.inputType = inputType;
+      }
+      const outputType = witnessArgs.outputType;
+      if (outputType) {
+        newWitnessArgs.outputType = outputType;
+      }
+    }
+    return bytes.hexify(blockchain.WitnessArgs.pack(newWitnessArgs));
+  }
+
+  buildDummyLock() {
+    const dummyEvent = this.buildDummyEvent();
+    const dummyLength = jsonStringToBytes(dummyEvent).length;
+    console.debug('dummyEvent and length: ', dummyEvent, dummyLength);
+
+    const dummyLock = '0x' + '00'.repeat(dummyLength);
+    return dummyLock;
   }
 
   buildDummyEvent() {
