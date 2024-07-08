@@ -1,11 +1,11 @@
 import { Cell } from "@ckb-lumos/lumos";
 import { blockchain } from "@ckb-lumos/base";
 import { bytes } from "@ckb-lumos/codec";
-import { getWitnessByOutpoint } from "@/app/lib/ckb.client";
+import { getWitnessByOutpoint } from "@/app/lib/ckb";
 import { useEffect, useState } from "react";
 import { Event } from "@rust-nostr/nostr-sdk";
 import ExpandableDiv from "./expandable";
-import { sdk } from "@/app/lib/sdk.client";
+import { sdk } from "@/app/lib/sdk";
 
 export interface AssetBoxProp {
   cell: Cell;

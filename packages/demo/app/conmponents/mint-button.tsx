@@ -5,8 +5,7 @@ import { SingerContext } from "@/app/context/signer";
 import offCKB from "@/offckb.config";
 import { Event } from "@rust-nostr/nostr-sdk";
 import { jsonStringToBytes } from "@nostr-binding/sdk";
-import { buildMintTransaction } from "@/app/lib/ckb.client";
-import { helpers } from "@ckb-lumos/lumos";
+import { buildMintTransaction } from "@/app/lib/ckb";
 import { createTransactionFromSkeleton } from "@ckb-lumos/lumos/helpers";
 
 export interface MintButtonProp {

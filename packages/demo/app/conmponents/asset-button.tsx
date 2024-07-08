@@ -1,6 +1,6 @@
 import { ReactNode, useContext } from "react";
 import { SingerContext } from "@/app/context/signer";
-import { listTypeCells } from "@/app/lib/ckb.client";
+import { listTypeCells } from "@/app/lib/ckb";
 import { AssetBox } from "./asset-box";
 
 export interface AssetButtonProp {

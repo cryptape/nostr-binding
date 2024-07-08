@@ -2,10 +2,10 @@ import { Script, helpers } from "@ckb-lumos/lumos";
 import { useContext } from "react";
 import { SingerContext } from "@/app/context/signer";
 import offCKB from "@/offckb.config";
-import { buildUnlockCKBTransaction, buildDeadLock } from "@/app/lib/ckb.client";
+import { buildUnlockCKBTransaction, buildDeadLock } from "@/app/lib/ckb";
 import { Event } from "@rust-nostr/nostr-sdk";
 import { TagName } from "@nostr-binding/sdk";
-import { sdk } from "@/app/lib/sdk.client";
+import { sdk } from "@/app/lib/sdk";
 import { createTransactionFromSkeleton } from "@ckb-lumos/lumos/helpers";
 
 export interface UnlockButtonProp {

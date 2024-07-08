@@ -10,11 +10,11 @@ import {
 import { useContext, useMemo, useState } from "react";
 import { helpers, Transaction } from "@ckb-lumos/lumos";
 import { CKBSigner, SingerContext } from "@/app/context/signer";
-import { capacityOf } from "@/app/lib/ckb.client";
+import { capacityOf } from "@/app/lib/ckb";
 import { readEnvNetwork } from "@/offckb.config";
 import ExpandableDiv from "./expandable";
 import { EventToSign, SignedEvent, joyIdNip07Signer } from "@nostr-binding/sdk";
-import { sdk } from "@/app/lib/sdk.client";
+import { sdk } from "@/app/lib/sdk";
 
 export function ConnectNostr() {
   const [nostrPubkey, setNostrPubkey] = useState<string>();
