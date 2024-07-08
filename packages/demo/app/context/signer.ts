@@ -1,4 +1,4 @@
-import { CellDep, Script, helpers } from "@ckb-lumos/lumos";
+import { CellDep, Script, Transaction } from "@ckb-lumos/lumos";
 import { NostrSigner } from "@rust-nostr/nostr-sdk";
 import { createContext } from "react";
 
@@ -7,9 +7,7 @@ export interface CKBSigner {
   lockScript: Script;
   originAddress: string; // eth wallet/unisat ... the original address
   signMessage: (message: string) => Promise<string>;
-  signTransaction: (
-    txSkeleton: helpers.TransactionSkeletonType,
-  ) => Promise<helpers.TransactionSkeletonType>;
+  signTransaction: (tx: Transaction) => Promise<Transaction>;
   cellDeps: CellDep[];
 }
 

@@ -2,12 +2,14 @@ import { ScriptConfig } from '@ckb-lumos/lumos/config';
 
 export interface NostrBindingConfig {
   prefix: 'ckt' | 'ckb';
+  rpcUrl: string;
   NOSTR_BINDING: ScriptConfig;
   NOSTR_LOCK: ScriptConfig;
 }
 
 export const TESTNET_CONFIGS: NostrBindingConfig = {
   prefix: 'ckt',
+  rpcUrl: '	https://testnet.ckbapp.dev/rpc',
   NOSTR_LOCK: {
     CODE_HASH: '0x6ae5ee0cb887b2df5a9a18137315b9bdc55be8d52637b2de0624092d5f0c91d5',
     HASH_TYPE: 'type',

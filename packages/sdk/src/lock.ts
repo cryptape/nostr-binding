@@ -1,4 +1,4 @@
-import { CellDep, HexString, helpers, utils, WitnessArgs, Script } from '@ckb-lumos/lumos';
+import { CellDep, HexString, helpers, utils, WitnessArgs, Script, RPC } from '@ckb-lumos/lumos';
 import { ScriptConfig } from '@ckb-lumos/lumos/config';
 import { TESTNET_CONFIGS } from './config';
 import { TagName } from './tag';
@@ -33,10 +33,16 @@ export class NostrLock {
 
   readonly prefix: 'ckt' | 'ckb';
   readonly scriptConfig: ScriptConfig;
+  rpc: RPC;
 
-  constructor(scriptConfig = TESTNET_CONFIGS.NOSTR_LOCK, prefix: 'ckt' | 'ckb' = 'ckt') {
+  constructor(
+    scriptConfig = TESTNET_CONFIGS.NOSTR_LOCK,
+    prefix: 'ckt' | 'ckb' = 'ckt',
+    rpcUrl = TESTNET_CONFIGS.rpcUrl,
+  ) {
     this.prefix = prefix;
     this.scriptConfig = scriptConfig;
+    this.rpc = new RPC(rpcUrl);
   }
 
   isNostrLock(lock: Script | undefined) {
@@ -130,10 +136,14 @@ export class NostrLock {
     return cellDeps;
   }
 
-  async signTx(txSkeleton: helpers.TransactionSkeletonType, signer: (_event: EventToSign) => Promise<SignedEvent>) {
+  async signTx(transaction: Transaction, signer: (_event: EventToSign) => Promise<SignedEvent>) {
     const lockIndexes: Array<number> = [];
-    for (const [index, cell] of txSkeleton.get('inputs').entries()) {
-      if (this.isNostrLock(cell.cellOutput.lock)) {
+    for (const [index, cell] of transaction.inputs.entries()) {
+      const inputCell = await this.rpc.getLiveCell(cell.previousOutput, false);
+      if (inputCell.status !== 'live') {
+        throw new Error(`input cell is not live, outpoint: ${JSON.stringify(cell.previousOutput, null, 2)}`);
+      }
+      if (this.isNostrLock(inputCell.cell!.output.lock)) {
         lockIndexes.push(index);
       }
     }
@@ -153,11 +163,11 @@ export class NostrLock {
       lock: dummyLock,
     };
 
-    while (witnessIndex >= txSkeleton.get('witnesses').size) {
-      txSkeleton = txSkeleton.update('witnesses', (witnesses) => witnesses.push('0x'));
+    while (witnessIndex >= transaction.witnesses.length) {
+      transaction.witnesses.push('0x');
     }
 
-    let witness: string = txSkeleton.get('witnesses').get(witnessIndex)!;
+    let witness: string = transaction.witnesses[witnessIndex]!;
 
     if (witness !== '0x') {
       const witnessArgs = blockchain.WitnessArgs.unpack(bytes.bytify(witness));
@@ -171,9 +181,8 @@ export class NostrLock {
       }
     }
     witness = bytes.hexify(blockchain.WitnessArgs.pack(newWitnessArgs));
-    txSkeleton = txSkeleton.update('witnesses', (witnesses) => witnesses.set(witnessIndex, witness));
-    const tx = helpers.createTransactionFromSkeleton(txSkeleton);
-    const sigHashAll = this.buildSigHashAll(tx, lockIndexes);
+    transaction.witnesses[witnessIndex] = witness;
+    const sigHashAll = this.buildSigHashAll(transaction, lockIndexes);
     console.debug('sighash_all = ', sigHashAll);
 
     const event = this.buildUnlockEvent(sigHashAll);
@@ -184,16 +193,16 @@ export class NostrLock {
 
     // put signed event into witness
     {
-      let witness: string = txSkeleton.get('witnesses').get(witnessIndex)!;
+      let witness: string = transaction.witnesses[witnessIndex]!;
       if (witness !== '0x') {
         const witnessArgs = blockchain.WitnessArgs.unpack(bytes.bytify(witness));
         witnessArgs.lock = bytes.hexify(eventJson);
         witness = bytes.hexify(blockchain.WitnessArgs.pack(witnessArgs));
-        txSkeleton = txSkeleton.update('witnesses', (witnesses) => witnesses.set(witnessIndex, witness));
+        transaction.witnesses[witnessIndex] = witness;
       }
     }
 
-    return txSkeleton;
+    return transaction;
   }
 
   buildSigHashAll(tx: Transaction, lockIndexes: Array<number>): HexString {

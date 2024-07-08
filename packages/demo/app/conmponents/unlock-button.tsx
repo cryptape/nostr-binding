@@ -1,4 +1,4 @@
-import { Script, helpers } from "@ckb-lumos/lumos";
+import { Script } from "@ckb-lumos/lumos";
 import { useContext } from "react";
 import { SingerContext } from "~/context/signer";
 import offCKB from "offckb.config";
@@ -6,6 +6,7 @@ import { buildUnlockCKBTransaction, buildDeadLock } from "~/lib/ckb.client";
 import { Event } from "@rust-nostr/nostr-sdk";
 import { TagName } from "@nostr-binding/sdk";
 import { sdk } from "~/lib/sdk.client";
+import { createTransactionFromSkeleton } from "@ckb-lumos/lumos/helpers";
 
 export interface UnlockButtonProp {
   assetEvent: Event | undefined;
@@ -45,8 +46,8 @@ export function UnlockButton({ setResult, assetEvent }: UnlockButtonProp) {
       cellDeps.push(...sdk.lock.buildCellDeps()),
     );
 
-    txSkeleton = await ckbSigner.signTransaction(txSkeleton);
-    const signedTx = helpers.createTransactionFromSkeleton(txSkeleton);
+    const tx = createTransactionFromSkeleton(txSkeleton);
+    const signedTx = await ckbSigner.signTransaction(tx);
     const txHash = await offCKB.rpc.sendTransaction(signedTx, "passthrough");
     setResult("transfer tx: " + txHash);
   };
