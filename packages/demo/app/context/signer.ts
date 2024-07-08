@@ -8,6 +8,8 @@ export interface CKBSigner {
   originAddress: string; // eth wallet/unisat ... the original address
   signMessage: (message: string) => Promise<string>;
   signTransaction: (tx: Transaction) => Promise<Transaction>;
+  signPreparedTransaction: (tx: Transaction) => Promise<Transaction>;
+  prepareTransaction: (tx: Transaction) => Promise<Transaction>;
   cellDeps: CellDep[];
 }
 

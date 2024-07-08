@@ -79,6 +79,25 @@ export function ConnectNostr() {
       return await sdk.lock.signTx(tx, signer);
     };
 
+    const signPreparedTransaction = async (tx: Transaction) => {
+      const signer = async (event: EventToSign) => {
+        const eventBuilder = new EventBuilder(
+          event.kind,
+          event.content,
+          event.tags.map((tag) => Tag.parse(tag)),
+        ).customCreatedAt(Timestamp.fromSecs(event.created_at));
+        const nostrSignedEvent =
+          await nostrSigner.signEventBuilder(eventBuilder);
+        const signedEvent: SignedEvent = JSON.parse(nostrSignedEvent.asJson());
+        return signedEvent;
+      };
+      return await sdk.lock.signPreparedTx(tx, signer);
+    };
+
+    const prepareTransaction = async (tx: Transaction) => {
+      return await sdk.lock.prepareTx(tx);
+    };
+
     const lockScript = sdk.lock.buildScript("0x" + publicKey.toHex());
     const ckbAddress = helpers.encodeToAddress(lockScript);
 
@@ -88,6 +107,8 @@ export function ConnectNostr() {
       lockScript,
       signMessage,
       signTransaction,
+      signPreparedTransaction,
+      prepareTransaction,
       cellDeps: sdk.lock.buildCellDeps(),
     };
     return ckbSigner;

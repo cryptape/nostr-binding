@@ -18,7 +18,7 @@ export function AssetButton({ setResult }: AssetButtonProp) {
         return setResult(
           <div className="flex flex-row gap-2 max-w-full">
             {cells.map((cell, id) => (
-              <AssetBox key={id} cell={cell} />
+              <AssetBox key={id} cell={cell} setResult={setResult} />
             ))}
           </div>,
         );

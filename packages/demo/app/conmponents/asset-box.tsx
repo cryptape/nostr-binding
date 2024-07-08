@@ -2,15 +2,17 @@ import { Cell } from "@ckb-lumos/lumos";
 import { blockchain } from "@ckb-lumos/base";
 import { bytes } from "@ckb-lumos/codec";
 import { getWitnessByOutpoint } from "~/lib/ckb.client";
-import { useEffect, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { Event } from "@rust-nostr/nostr-sdk";
 import ExpandableDiv from "./expandable";
 import { sdk } from "~/lib/sdk.client";
+import { UnlockButton } from "./unlock-button";
 
 export interface AssetBoxProp {
   cell: Cell;
+  setResult: (res: string | ReactNode) => void;
 }
-export const AssetBox: React.FC<AssetBoxProp> = ({ cell }) => {
+export const AssetBox: React.FC<AssetBoxProp> = ({ cell, setResult }) => {
   const [event, setEvent] = useState<Event | null | undefined>();
 
   const getBindingEvent = async (cell: Cell) => {
@@ -60,6 +62,12 @@ export const AssetBox: React.FC<AssetBoxProp> = ({ cell }) => {
                         <p>Content: </p>
                         <div className="border border-gray-400 p-2 rounded-lg">
                           {event.content}
+                        </div>
+                        <div>
+                          <UnlockButton
+                            assetEvent={event}
+                            setResult={setResult}
+                          />
                         </div>
                       </div>
                     }
