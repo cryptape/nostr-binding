@@ -3,10 +3,11 @@ import {
   NostrBindingSDK,
   TESTNET_CONFIGS,
 } from "@nostr-binding/sdk";
-import offCKBConfig, { readEnvNetwork } from "offckb.config";
+import offCKBConfig, { readEnvNetwork } from "@/offckb.config";
 
 export const DEVNET_CONFIGS: NostrBindingConfig = {
   prefix: offCKBConfig.lumosConfig.PREFIX as "ckt" | "ckb",
+  rpcUrl: offCKBConfig.rpcUrl,
   NOSTR_LOCK: offCKBConfig.lumosConfig.SCRIPTS["NOSTR_LOCK"]!,
   NOSTR_BINDING: offCKBConfig.lumosConfig.SCRIPTS["NOSTR_BINDING"]!,
 };

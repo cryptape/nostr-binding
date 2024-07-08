@@ -9,7 +9,7 @@ export interface NostrBindingConfig {
 
 export const TESTNET_CONFIGS: NostrBindingConfig = {
   prefix: 'ckt',
-  rpcUrl: '	https://testnet.ckbapp.dev/rpc',
+  rpcUrl: 'https://testnet.ckb.dev/rpc',
   NOSTR_LOCK: {
     CODE_HASH: '0x6ae5ee0cb887b2df5a9a18137315b9bdc55be8d52637b2de0624092d5f0c91d5',
     HASH_TYPE: 'type',

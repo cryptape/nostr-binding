@@ -182,6 +182,7 @@ export class NostrLock {
     }
     witness = bytes.hexify(blockchain.WitnessArgs.pack(newWitnessArgs));
     transaction.witnesses[witnessIndex] = witness;
+    console.debug('dummy lock witness', newWitnessArgs, transaction.witnesses);
     const sigHashAll = this.buildSigHashAll(transaction, lockIndexes);
     console.debug('sighash_all = ', sigHashAll);
 

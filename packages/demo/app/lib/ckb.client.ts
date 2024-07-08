@@ -8,11 +8,11 @@ import {
   Transaction,
   OutPoint,
 } from "@ckb-lumos/lumos";
-import offCKB from "offckb.config";
 import { blockchain } from "@ckb-lumos/base";
 import { bytes } from "@ckb-lumos/codec";
 import { PublicKey, Timestamp } from "@rust-nostr/nostr-sdk";
 import { sdk } from "./sdk.client";
+import offCKB from "@/offckb.config";
 import { EventToBind } from "@nostr-binding/sdk";
 
 offCKB.initializeLumosConfig();

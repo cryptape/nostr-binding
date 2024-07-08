@@ -1,12 +1,13 @@
 import { bytes } from "@ckb-lumos/codec";
 import { blockchain } from "@ckb-lumos/base";
 import { ReactNode, useContext } from "react";
-import { SingerContext } from "~/context/signer";
-import offCKB from "offckb.config";
+import { SingerContext } from "@/app/context/signer";
+import offCKB from "@/offckb.config";
 import { Event } from "@rust-nostr/nostr-sdk";
 import { jsonStringToBytes } from "@nostr-binding/sdk";
-import { buildMintTransaction } from "~/lib/ckb.client";
+import { buildMintTransaction } from "@/app/lib/ckb.client";
 import { helpers } from "@ckb-lumos/lumos";
+import { createTransactionFromSkeleton } from "@ckb-lumos/lumos/helpers";
 
 export interface MintButtonProp {
   setResult: (res: string | ReactNode) => void;
@@ -42,8 +43,8 @@ export function MintButton({ setResult, setAssetEvent }: MintButtonProp) {
       "witnesses",
       (witnesses: Immutable.List<string>) => witnesses.set(0, witness),
     );
-    txSkeleton = await ckbSigner.signTransaction(txSkeleton);
-    const signedTx = helpers.createTransactionFromSkeleton(txSkeleton);
+    const tx = createTransactionFromSkeleton(txSkeleton);
+    const signedTx = await ckbSigner.signTransaction(tx);
     const txHash = await offCKB.rpc.sendTransaction(signedTx, "passthrough");
 
     setResult(
