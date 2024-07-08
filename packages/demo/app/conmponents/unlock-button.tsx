@@ -33,21 +33,21 @@ export function UnlockButton({ setResult, assetEvent }: UnlockButtonProp) {
     return await unlock(type);
   };
 
-  const unlock = async (type: Script) => {
+  const unlock = async (bindingType: Script) => {
     const nostrPubkey = await nostrSigner.publicKey();
     const newLock = buildDeadLock();
     let txSkeleton = await buildUnlockCKBTransaction(
       nostrPubkey,
       newLock,
-      type,
+      bindingType,
     );
 
     txSkeleton = txSkeleton.update("cellDeps", (cellDeps) =>
-      cellDeps.push(...sdk.lock.buildCellDeps()),
+      cellDeps.push(...sdk.binding.buildCellDeps()),
     );
-
-    const tx = createTransactionFromSkeleton(txSkeleton);
-    const signedTx = await ckbSigner.signTransaction(tx);
+    let tx = createTransactionFromSkeleton(txSkeleton);
+    tx = await ckbSigner.prepareTransaction(tx);
+    const signedTx = await ckbSigner.signPreparedTransaction(tx);
     const txHash = await offCKB.rpc.sendTransaction(signedTx, "passthrough");
     setResult("transfer tx: " + txHash);
   };

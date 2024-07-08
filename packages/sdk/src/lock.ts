@@ -136,6 +136,9 @@ export class NostrLock {
     return cellDeps;
   }
 
+  // signTx will overwrite the witness lock with dummyLock and then generate sigHashAll,
+  // sign it and return signed transaction. It is a easy way to do nostr lock signing if
+  // transaction fee estimation is not a problem to you
   async signTx(transaction: Transaction, signer: (_event: EventToSign) => Promise<SignedEvent>) {
     const lockIndexes: Array<number> = [];
     for (const [index, cell] of transaction.inputs.entries()) {
@@ -152,35 +155,13 @@ export class NostrLock {
       throw new Error('there is no nostr lock input.');
     }
 
-    console.debug('lockIndexes:', lockIndexes);
-    const dummyEvent = this.buildDummyEvent();
-    const dummyLength = jsonStringToBytes(dummyEvent).length;
-    console.debug('dummyEvent and length: ', dummyEvent, dummyLength);
-
     const witnessIndex = lockIndexes[0];
-    const dummyLock = '0x' + '00'.repeat(dummyLength);
-    const newWitnessArgs: WitnessArgs = {
-      lock: dummyLock,
-    };
-
     while (witnessIndex >= transaction.witnesses.length) {
       transaction.witnesses.push('0x');
     }
 
     let witness: string = transaction.witnesses[witnessIndex]!;
-
-    if (witness !== '0x') {
-      const witnessArgs = blockchain.WitnessArgs.unpack(bytes.bytify(witness));
-      const inputType = witnessArgs.inputType;
-      if (inputType) {
-        newWitnessArgs.inputType = inputType;
-      }
-      const outputType = witnessArgs.outputType;
-      if (outputType) {
-        newWitnessArgs.outputType = outputType;
-      }
-    }
-    witness = bytes.hexify(blockchain.WitnessArgs.pack(newWitnessArgs));
+    witness = this.fillInDummyLockWitness(witness);
     transaction.witnesses[witnessIndex] = witness;
     const sigHashAll = this.buildSigHashAll(transaction, lockIndexes);
     console.debug('sighash_all = ', sigHashAll);
@@ -201,6 +182,91 @@ export class NostrLock {
         transaction.witnesses[witnessIndex] = witness;
       }
     }
+
+    return transaction;
+  }
+
+  // signPreparedTx will checks if the transaction is placed with correct Nostr-lock dummyLock
+  // and then directly generate sigHashAll from the giving transaction, sign it and return
+  // signed transaction. You need to call prepareTx before this function.
+  async signPreparedTx(transaction: Transaction, signer: (_event: EventToSign) => Promise<SignedEvent>) {
+    const lockIndexes: Array<number> = [];
+    for (const [index, cell] of transaction.inputs.entries()) {
+      const inputCell = await this.rpc.getLiveCell(cell.previousOutput, false);
+      if (inputCell.status !== 'live') {
+        throw new Error(`input cell is not live, outpoint: ${JSON.stringify(cell.previousOutput, null, 2)}`);
+      }
+      if (this.isNostrLock(inputCell.cell!.output.lock)) {
+        lockIndexes.push(index);
+      }
+    }
+
+    if (lockIndexes.length === 0) {
+      throw new Error('there is no nostr lock input.');
+    }
+
+    const witnessIndex = lockIndexes[0];
+    // check if witness placeholder is correct
+    {
+      const witness = transaction.witnesses[witnessIndex];
+      if (witness == null) {
+        throw new Error('Lock field in first witness is not set!');
+      }
+      const witnessArgs = blockchain.WitnessArgs.unpack(bytes.bytify(witness));
+      const lock = witnessArgs.lock;
+      if (lock && !bytes.equal(lock, this.buildDummyLock())) {
+        throw new Error('Lock field in first witness is a invalid dummy lock!');
+      }
+    }
+
+    const sigHashAll = this.buildSigHashAll(transaction, lockIndexes);
+    console.debug('sighash_all = ', sigHashAll);
+
+    const event = this.buildUnlockEvent(sigHashAll);
+
+    const signedEvent = await signer(event);
+    const eventJson = jsonStringToBytes(JSON.stringify(signedEvent));
+    console.debug('eventJson.byteLength: ', eventJson.byteLength, signedEvent);
+
+    // put signed event into witness
+    {
+      let witness: string = transaction.witnesses[witnessIndex]!;
+      if (witness !== '0x') {
+        const witnessArgs = blockchain.WitnessArgs.unpack(bytes.bytify(witness));
+        witnessArgs.lock = bytes.hexify(eventJson);
+        witness = bytes.hexify(blockchain.WitnessArgs.pack(witnessArgs));
+        transaction.witnesses[witnessIndex] = witness;
+      }
+    }
+
+    return transaction;
+  }
+
+  // fill-in the witness of nostr-lock with corresponding dummyLock
+  async prepareTx(transaction: Transaction) {
+    const lockIndexes: Array<number> = [];
+    for (const [index, cell] of transaction.inputs.entries()) {
+      const inputCell = await this.rpc.getLiveCell(cell.previousOutput, false);
+      if (inputCell.status !== 'live') {
+        throw new Error(`input cell is not live, outpoint: ${JSON.stringify(cell.previousOutput, null, 2)}`);
+      }
+      if (this.isNostrLock(inputCell.cell!.output.lock)) {
+        lockIndexes.push(index);
+      }
+    }
+
+    if (lockIndexes.length === 0) {
+      throw new Error('there is no nostr lock input.');
+    }
+
+    const witnessIndex = lockIndexes[0];
+    while (witnessIndex >= transaction.witnesses.length) {
+      transaction.witnesses.push('0x');
+    }
+
+    let witness: string = transaction.witnesses[witnessIndex]!;
+    witness = this.fillInDummyLockWitness(witness);
+    transaction.witnesses[witnessIndex] = witness;
 
     return transaction;
   }
@@ -253,6 +319,34 @@ export class NostrLock {
     const message = hasher.digestHex();
     console.debug(`Hashed ${count} bytes in sighash_all: `, message);
     return message;
+  }
+
+  fillInDummyLockWitness(witness: string) {
+    const newWitnessArgs: WitnessArgs = {
+      lock: this.buildDummyLock(),
+    };
+
+    if (witness !== '0x') {
+      const witnessArgs = blockchain.WitnessArgs.unpack(bytes.bytify(witness));
+      const inputType = witnessArgs.inputType;
+      if (inputType) {
+        newWitnessArgs.inputType = inputType;
+      }
+      const outputType = witnessArgs.outputType;
+      if (outputType) {
+        newWitnessArgs.outputType = outputType;
+      }
+    }
+    return bytes.hexify(blockchain.WitnessArgs.pack(newWitnessArgs));
+  }
+
+  buildDummyLock() {
+    const dummyEvent = this.buildDummyEvent();
+    const dummyLength = jsonStringToBytes(dummyEvent).length;
+    console.debug('dummyEvent and length: ', dummyEvent, dummyLength);
+
+    const dummyLock = '0x' + '00'.repeat(dummyLength);
+    return dummyLock;
   }
 
   buildDummyEvent() {
