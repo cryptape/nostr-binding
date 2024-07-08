@@ -8,7 +8,7 @@ import {
   UnsignedEvent,
 } from "@rust-nostr/nostr-sdk";
 import { useContext, useMemo, useState } from "react";
-import { helpers } from "@ckb-lumos/lumos";
+import { helpers, Transaction } from "@ckb-lumos/lumos";
 import { CKBSigner, SingerContext } from "~/context/signer";
 import { capacityOf } from "~/lib/ckb.client";
 import { readEnvNetwork } from "offckb.config";
@@ -64,9 +64,7 @@ export function ConnectNostr() {
       return signedMessage.asJson();
     };
 
-    const signTransaction = async (
-      txSkeleton: helpers.TransactionSkeletonType,
-    ) => {
+    const signTransaction = async (tx: Transaction) => {
       const signer = async (event: EventToSign) => {
         const eventBuilder = new EventBuilder(
           event.kind,
@@ -78,8 +76,7 @@ export function ConnectNostr() {
         const signedEvent: SignedEvent = JSON.parse(nostrSignedEvent.asJson());
         return signedEvent;
       };
-      txSkeleton = await sdk.lock.signTx(txSkeleton, signer);
-      return txSkeleton;
+      return await sdk.lock.signTx(tx, signer);
     };
 
     const lockScript = sdk.lock.buildScript("0x" + publicKey.toHex());
