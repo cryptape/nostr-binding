@@ -45,9 +45,12 @@ export function UnlockButton({ setResult, assetEvent }: UnlockButtonProp) {
     txSkeleton = txSkeleton.update("cellDeps", (cellDeps) =>
       cellDeps.push(...sdk.binding.buildCellDeps()),
     );
-    let tx = createTransactionFromSkeleton(txSkeleton);
-    tx = await ckbSigner.prepareTransaction(tx);
-    const signedTx = await ckbSigner.signPreparedTransaction(tx);
+    const tx = createTransactionFromSkeleton(txSkeleton);
+    const { transaction, lockIndexes } = await ckbSigner.prepareTransaction(tx);
+    const signedTx = await ckbSigner.signPreparedTransaction(
+      transaction,
+      lockIndexes,
+    );
     const txHash = await offCKB.rpc.sendTransaction(signedTx, "passthrough");
     setResult("transfer tx: " + txHash);
   };
