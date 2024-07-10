@@ -238,11 +238,17 @@ export class NostrLock {
   // fill-in the witness of nostr-lock with corresponding dummyLock
   async prepareTx(transaction: Transaction) {
     const lockIndexes: Array<number> = [];
-    for (const [index, cell] of transaction.inputs.entries()) {
+
+    const inputCellsPromises = transaction.inputs.map(async (cell, index) => {
       const inputCell = await this.rpc.getLiveCell(cell.previousOutput, false);
       if (inputCell.status !== 'live') {
         throw new Error(`input cell is not live, outpoint: ${JSON.stringify(cell.previousOutput, null, 2)}`);
       }
+      return { inputCell, index };
+    });
+    const inputCells = await Promise.all(inputCellsPromises);
+
+    for (const { inputCell, index } of inputCells) {
       if (this.isNostrLock(inputCell.cell!.output.lock)) {
         lockIndexes.push(index);
       }
