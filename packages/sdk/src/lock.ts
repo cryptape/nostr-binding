@@ -140,16 +140,7 @@ export class NostrLock {
   // sign it and return signed transaction. It is a easy way to do nostr lock signing if
   // transaction fee estimation is not a problem to you
   async signTx(transaction: Transaction, signer: (_event: EventToSign) => Promise<SignedEvent>) {
-    const lockIndexes: Array<number> = [];
-    for (const [index, cell] of transaction.inputs.entries()) {
-      const inputCell = await this.rpc.getLiveCell(cell.previousOutput, false);
-      if (inputCell.status !== 'live') {
-        throw new Error(`input cell is not live, outpoint: ${JSON.stringify(cell.previousOutput, null, 2)}`);
-      }
-      if (this.isNostrLock(inputCell.cell!.output.lock)) {
-        lockIndexes.push(index);
-      }
-    }
+    const lockIndexes: Array<number> = await this.getLockIndexes(transaction);
 
     if (lockIndexes.length === 0) {
       throw new Error('there is no nostr lock input.');
@@ -237,6 +228,26 @@ export class NostrLock {
 
   // fill-in the witness of nostr-lock with corresponding dummyLock
   async prepareTx(transaction: Transaction) {
+    const lockIndexes: Array<number> = await this.getLockIndexes(transaction);
+
+    if (lockIndexes.length === 0) {
+      throw new Error('there is no nostr lock input.');
+    }
+
+    const witnessIndex = lockIndexes[0];
+    while (witnessIndex >= transaction.witnesses.length) {
+      transaction.witnesses.push('0x');
+    }
+
+    let witness: string = transaction.witnesses[witnessIndex]!;
+    witness = this.fillInDummyLockWitness(witness);
+    transaction.witnesses[witnessIndex] = witness;
+
+    return { transaction, lockIndexes };
+  }
+
+  // get live cell of the tx's input and see if there is nostr-lock input
+  async getLockIndexes(transaction: Transaction) {
     const lockIndexes: Array<number> = [];
 
     const inputCellsPromises = transaction.inputs.map(async (cell, index) => {
@@ -254,20 +265,7 @@ export class NostrLock {
       }
     }
 
-    if (lockIndexes.length === 0) {
-      throw new Error('there is no nostr lock input.');
-    }
-
-    const witnessIndex = lockIndexes[0];
-    while (witnessIndex >= transaction.witnesses.length) {
-      transaction.witnesses.push('0x');
-    }
-
-    let witness: string = transaction.witnesses[witnessIndex]!;
-    witness = this.fillInDummyLockWitness(witness);
-    transaction.witnesses[witnessIndex] = witness;
-
-    return { transaction, lockIndexes };
+    return lockIndexes;
   }
 
   buildSigHashAll(tx: Transaction, lockIndexes: Array<number>): HexString {
