@@ -27,15 +27,15 @@ const signer = async (event: EventToSign) => {
 // sign it and return signed transaction. It is a easy way to do nostr lock signing if
 // transaction fee estimation is not a problem to you. After calling this function, witness
 // is auto-filled with signedEvent.
-txSkeleton = await sdk.lock.signTx(txSkeleton, signer);
+tx = await sdk.lock.signTx(tx, signer);
 
 // or prepare your transaction first
 import { createTransactionFromSkeleton } from "@ckb-lumos/lumos/helpers";
-let tx = createTransactionFromSkeleton(txSkeleton);
+const tx = createTransactionFromSkeleton(txSkeleton);
 // fill-in the witness of nostr-lock with corresponding dummyLock
-tx = await sdk.lock.prepareTx(transaction: Transaction);
+const {transaction, lockIndexes} = await sdk.lock.prepareTx(transaction: Transaction);
 // sdk.lock.signPreparedTx will checks if the transaction is placed with correct Nostr-lock dummyLock
 // and then directly generate sigHashAll from the giving transaction, sign it and return
 // signed transaction. You need to call prepareTx before this function.
-const signedTx = await sdk.lock.signPreparedTx(tx, signer);
+const signedTx = await sdk.lock.signPreparedTx(transaction, lockIndexes, signer);
 ```
