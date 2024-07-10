@@ -79,7 +79,10 @@ export function ConnectNostr() {
       return await sdk.lock.signTx(tx, signer);
     };
 
-    const signPreparedTransaction = async (tx: Transaction) => {
+    const signPreparedTransaction = async (
+      tx: Transaction,
+      lockIndexes: Array<number>,
+    ) => {
       const signer = async (event: EventToSign) => {
         const eventBuilder = new EventBuilder(
           event.kind,
@@ -91,7 +94,7 @@ export function ConnectNostr() {
         const signedEvent: SignedEvent = JSON.parse(nostrSignedEvent.asJson());
         return signedEvent;
       };
-      return await sdk.lock.signPreparedTx(tx, signer);
+      return await sdk.lock.signPreparedTx(tx, lockIndexes, signer);
     };
 
     const prepareTransaction = async (tx: Transaction) => {

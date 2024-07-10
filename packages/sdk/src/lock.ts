@@ -189,18 +189,11 @@ export class NostrLock {
   // signPreparedTx will checks if the transaction is placed with correct Nostr-lock dummyLock
   // and then directly generate sigHashAll from the giving transaction, sign it and return
   // signed transaction. You need to call prepareTx before this function.
-  async signPreparedTx(transaction: Transaction, signer: (_event: EventToSign) => Promise<SignedEvent>) {
-    const lockIndexes: Array<number> = [];
-    for (const [index, cell] of transaction.inputs.entries()) {
-      const inputCell = await this.rpc.getLiveCell(cell.previousOutput, false);
-      if (inputCell.status !== 'live') {
-        throw new Error(`input cell is not live, outpoint: ${JSON.stringify(cell.previousOutput, null, 2)}`);
-      }
-      if (this.isNostrLock(inputCell.cell!.output.lock)) {
-        lockIndexes.push(index);
-      }
-    }
-
+  async signPreparedTx(
+    transaction: Transaction,
+    lockIndexes: Array<number>,
+    signer: (_event: EventToSign) => Promise<SignedEvent>,
+  ) {
     if (lockIndexes.length === 0) {
       throw new Error('there is no nostr lock input.');
     }
@@ -268,7 +261,7 @@ export class NostrLock {
     witness = this.fillInDummyLockWitness(witness);
     transaction.witnesses[witnessIndex] = witness;
 
-    return transaction;
+    return { transaction, lockIndexes };
   }
 
   buildSigHashAll(tx: Transaction, lockIndexes: Array<number>): HexString {
