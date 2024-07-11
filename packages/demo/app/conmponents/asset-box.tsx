@@ -31,7 +31,11 @@ export const AssetBox: React.FC<AssetBoxProp> = ({ cell, setResult }) => {
   };
 
   useEffect(() => {
-    getBindingEvent(cell).then((event) => setEvent(event));
+    getBindingEvent(cell).then((event) => {
+      if (event) {
+        setEvent(Event.fromJson(JSON.stringify(event)));
+      }
+    });
   }, [cell]);
 
   return (

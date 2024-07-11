@@ -13,8 +13,9 @@ import { CKBSigner, SingerContext } from "~/context/signer";
 import { capacityOf } from "~/lib/ckb.client";
 import { readEnvNetwork } from "offckb.config";
 import ExpandableDiv from "./expandable";
-import { EventToSign, SignedEvent, joyIdNip07Signer } from "@nostr-binding/sdk";
+import { EventToSign, SignedEvent } from "@nostr-binding/sdk";
 import { sdk } from "~/lib/sdk.client";
+import { joyIdNip07Signer } from "~/lib/nip07.client";
 
 export function ConnectNostr() {
   const [nostrPubkey, setNostrPubkey] = useState<string>();

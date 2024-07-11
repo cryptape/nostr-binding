@@ -1,5 +1,10 @@
-import { nostr } from '@joyid/nostr';
-import { Event, Nip07Signer, PublicKey, UnsignedEvent } from '@rust-nostr/nostr-sdk';
+import { nostr } from "@joyid/nostr";
+import {
+  Event,
+  Nip07Signer,
+  PublicKey,
+  UnsignedEvent,
+} from "@rust-nostr/nostr-sdk";
 
 export class joyIdNip07Signer extends Nip07Signer {
   constructor() {
@@ -9,7 +14,7 @@ export class joyIdNip07Signer extends Nip07Signer {
   }
 
   free(): void {
-    throw new Error('Method not implemented.');
+    throw new Error("Method not implemented.");
   }
 
   async getPublicKey(): Promise<PublicKey> {
@@ -23,15 +28,15 @@ export class joyIdNip07Signer extends Nip07Signer {
   }
 
   nip04Encrypt(_publicKey: PublicKey, _plaintext: string): Promise<string> {
-    throw new Error('Method not implemented.');
+    throw new Error("Method not implemented.");
   }
   nip04Decrypt(_publicKey: PublicKey, _ciphertext: string): Promise<string> {
-    throw new Error('Method not implemented.');
+    throw new Error("Method not implemented.");
   }
   nip44Encrypt(_publicKey: PublicKey, _plaintext: string): Promise<string> {
-    throw new Error('Method not implemented.');
+    throw new Error("Method not implemented.");
   }
   nip44Decrypt(_publicKey: PublicKey, _ciphertext: string): Promise<string> {
-    throw new Error('Method not implemented.');
+    throw new Error("Method not implemented.");
   }
 }
