@@ -1,10 +1,11 @@
-import { BI, Cell, CellDep, HexNumber, HexString, Input, Script, WitnessArgs, helpers, utils } from '@ckb-lumos/lumos';
+import { Cell, CellDep, HexNumber, HexString, Input, Script, WitnessArgs, utils } from '@ckb-lumos/base';
 import { bytesToJsonString } from './util';
 import { bytes } from '@ckb-lumos/codec';
 import { TESTNET_CONFIGS } from './config';
-import { ScriptConfig } from '@ckb-lumos/lumos/config';
+import { ScriptConfig } from '@ckb-lumos/config-manager';
 import { TagName } from './tag';
 import { calcEventId, EventToBind, parseSignedEvent } from './event';
+import { minimalCellCapacity } from '@ckb-lumos/helpers';
 
 export class NostrBinding {
   readonly prefix: 'ckt' | 'ckb';
@@ -63,14 +64,14 @@ export class NostrBinding {
     const type = this.buildScript(eventId, ckbGlobalUniqueId);
     const bindingOutput: Cell = {
       cellOutput: {
-        capacity: BI.from(0).toHexString(),
+        capacity: '0x0',
         lock,
         type,
       },
       data: '0x00',
     };
-    const capacity = helpers.minimalCellCapacity(bindingOutput);
-    bindingOutput.cellOutput.capacity = BI.from(capacity).toHexString();
+    const capacity = minimalCellCapacity(bindingOutput);
+    bindingOutput.cellOutput.capacity = '0x' + capacity.toString(16);
     return bindingOutput;
   }
 

@@ -113,7 +113,13 @@ importers:
       '@ckb-lumos/codec':
         specifier: ^0.23.0
         version: 0.23.0
-      '@ckb-lumos/lumos':
+      '@ckb-lumos/config-manager':
+        specifier: ^0.23.0
+        version: 0.23.0
+      '@ckb-lumos/helpers':
+        specifier: ^0.23.0
+        version: 0.23.0
+      '@ckb-lumos/rpc':
         specifier: ^0.23.0
         version: 0.23.0
       '@noble/hashes':

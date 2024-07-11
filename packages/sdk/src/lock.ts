@@ -1,11 +1,12 @@
-import { CellDep, HexString, helpers, utils, WitnessArgs, Script, RPC } from '@ckb-lumos/lumos';
-import { ScriptConfig } from '@ckb-lumos/lumos/config';
+import { ScriptConfig } from '@ckb-lumos/config-manager';
 import { TESTNET_CONFIGS } from './config';
 import { TagName } from './tag';
 import { bytesToJsonString, getTimestampNowSecs, jsonStringToBytes } from './util';
-import { blockchain, Transaction } from '@ckb-lumos/base';
+import { CellDep, HexString, utils, WitnessArgs, Script, blockchain, Transaction } from '@ckb-lumos/base';
 import { bytes, number } from '@ckb-lumos/codec';
 import { EventToSign, parseSignedEvent, SignedEvent } from './event';
+import { RPC } from '@ckb-lumos/rpc';
+import { encodeToAddress, parseAddress } from '@ckb-lumos/helpers';
 
 const { Uint64 } = number;
 
@@ -93,12 +94,12 @@ export class NostrLock {
 
   encodeToCKBAddress(ownerPubkey: HexString) {
     const lockScript = this.buildScript(ownerPubkey);
-    const address = helpers.encodeToAddress(lockScript, { config: { PREFIX: this.prefix, SCRIPTS: {} } });
+    const address = encodeToAddress(lockScript, { config: { PREFIX: this.prefix, SCRIPTS: {} } });
     return address;
   }
 
   parseCBKAddressToNostrPubkeyHash(ckbAddress: string) {
-    const script = helpers.parseAddress(ckbAddress, { config: { PREFIX: this.prefix, SCRIPTS: {} } });
+    const script = parseAddress(ckbAddress, { config: { PREFIX: this.prefix, SCRIPTS: {} } });
     if (script.codeHash !== this.scriptConfig.CODE_HASH || script.hashType !== this.scriptConfig.HASH_TYPE) {
       throw new Error('nostr-lock contract script info not match!');
     }

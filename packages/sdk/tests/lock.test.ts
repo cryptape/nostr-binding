@@ -1,7 +1,7 @@
 import { NostrBindingSDK, TESTNET_CONFIGS } from '../src/index';
 import { blockchain } from '@ckb-lumos/base';
 import { bytes } from '@ckb-lumos/codec';
-import { Transaction, WitnessArgs } from '@ckb-lumos/lumos';
+import { Transaction, WitnessArgs } from '@ckb-lumos/base';
 
 describe('Nostr Lock', () => {
   test('Build Lock Script', () => {
