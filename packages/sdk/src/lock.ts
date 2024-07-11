@@ -2,28 +2,12 @@ import { CellDep, HexString, helpers, utils, WitnessArgs, Script, RPC } from '@c
 import { ScriptConfig } from '@ckb-lumos/lumos/config';
 import { TESTNET_CONFIGS } from './config';
 import { TagName } from './tag';
-import { bytesToJsonString, jsonStringToBytes } from './util';
+import { bytesToJsonString, getTimestampNowSecs, jsonStringToBytes } from './util';
 import { blockchain, Transaction } from '@ckb-lumos/base';
 import { bytes, number } from '@ckb-lumos/codec';
-import { Event, Timestamp } from '@rust-nostr/nostr-sdk';
+import { EventToSign, parseSignedEvent, SignedEvent } from './event';
 
 const { Uint64 } = number;
-
-export interface EventToSign {
-  readonly created_at: number;
-  readonly kind: number;
-  readonly tags: string[][];
-  readonly content: string;
-}
-
-export interface SignedEvent {
-  readonly id: string;
-  readonly pubkey: string;
-  readonly created_at: number;
-  readonly kind: number;
-  readonly tags: string[][];
-  readonly content: string;
-}
 
 export class NostrLock {
   readonly kind = 23334;
@@ -56,7 +40,7 @@ export class NostrLock {
       const eventBytes = bytes.bytify(lock);
       const eventJsonString = bytesToJsonString(eventBytes);
       try {
-        return Event.fromJson(eventJsonString);
+        return parseSignedEvent(eventJsonString);
       } catch (error: unknown) {
         console.debug(error);
         return null;
@@ -352,7 +336,7 @@ export class NostrLock {
       id: '00'.repeat(32),
       pubkey: '00'.repeat(32),
       tags,
-      created_at: Timestamp.now().asSecs(),
+      created_at: getTimestampNowSecs(),
       kind: this.kind,
       content: this.content,
       sig: '00'.repeat(64),
@@ -364,7 +348,7 @@ export class NostrLock {
   buildUnlockEvent(ckbSigHashAll: HexString): EventToSign {
     const unlockEvent: EventToSign = {
       tags: [[TagName.ckbSigHashAll, ckbSigHashAll.slice(2)]],
-      created_at: Timestamp.now().asSecs(),
+      created_at: getTimestampNowSecs(),
       kind: this.kind,
       content: this.content,
     };

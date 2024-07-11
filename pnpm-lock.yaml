@@ -116,12 +116,9 @@ importers:
       '@ckb-lumos/lumos':
         specifier: ^0.23.0
         version: 0.23.0
-      '@joyid/nostr':
-        specifier: ^0.1.5
-        version: 0.1.6(typescript@5.5.3)
-      '@rust-nostr/nostr-sdk':
-        specifier: ^0.32.1
-        version: 0.32.1
+      '@noble/hashes':
+        specifier: ^1.4.0
+        version: 1.4.0
     devDependencies:
       '@types/jest':
         specifier: ^29.5.12
@@ -854,6 +851,10 @@ packages:
 
   '@mdx-js/mdx@2.3.0':
     resolution: {integrity: sha512-jLuwRlz8DQfQNiUCJR50Y09CGPq3fLtmtUQfVrj79E0JWu3dvsVcxVIcfhR5h0iXu+/z++zDrYeiJqifRynJkA==}
+
+  '@noble/hashes@1.4.0':
+    resolution: {integrity: sha512-V1JJ1WTRUqHHrOSh597hURcMqVKVGL/ea3kv0gSnEdsEZ0/+VyPghM1lMNGc00z7CIQorSvbKpuJkxvuHbvdbg==}
+    engines: {node: '>= 16'}
 
   '@nodelib/fs.scandir@2.1.5':
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
@@ -5320,6 +5321,8 @@ snapshots:
       vfile: 5.3.7
     transitivePeerDependencies:
       - supports-color
+
+  '@noble/hashes@1.4.0': {}
 
   '@nodelib/fs.scandir@2.1.5':
     dependencies:

@@ -3,7 +3,7 @@ import { blockchain } from "@ckb-lumos/base";
 import { ReactNode, useContext } from "react";
 import { SingerContext } from "~/context/signer";
 import offCKB from "offckb.config";
-import { Event } from "@rust-nostr/nostr-sdk";
+import { Event, UnsignedEvent } from "@rust-nostr/nostr-sdk";
 import { jsonStringToBytes } from "@nostr-binding/sdk";
 import { buildMintTransaction } from "~/lib/ckb.client";
 import { createTransactionFromSkeleton } from "@ckb-lumos/lumos/helpers";
@@ -27,7 +27,9 @@ export function MintButton({ setResult, setAssetEvent }: MintButtonProp) {
     let txSkeleton = result.txSkeleton;
     const mintEvent = result.mintEvent;
 
-    const signedMintEvent = await nostrSigner.signEvent(mintEvent);
+    const signedMintEvent = await nostrSigner.signEvent(
+      UnsignedEvent.fromJson(JSON.stringify(mintEvent)),
+    );
     setAssetEvent(signedMintEvent);
 
     const mintEventWitness = bytes.hexify(

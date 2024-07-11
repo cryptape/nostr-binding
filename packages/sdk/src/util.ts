@@ -16,3 +16,7 @@ export function bytesToJsonString(bytes: Uint8Array): string {
   // Convert the buffer to a string
   return buffer.toString('utf-8');
 }
+
+export function getTimestampNowSecs() {
+  return Math.floor(Date.now() / 1000);
+}

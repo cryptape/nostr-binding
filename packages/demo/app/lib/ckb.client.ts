@@ -84,7 +84,7 @@ export async function buildMintTransaction(
 
   const lock = sdk.lock.buildScript("0x" + receiverNostrPublicKey.toHex());
   const bindingCell = sdk.binding.buildBindingCell(
-    mintEvent.id!.toHex(),
+    mintEvent.id!,
     globalUniqueId,
     lock,
   );

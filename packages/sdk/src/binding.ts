@@ -3,16 +3,8 @@ import { bytesToJsonString } from './util';
 import { bytes } from '@ckb-lumos/codec';
 import { TESTNET_CONFIGS } from './config';
 import { ScriptConfig } from '@ckb-lumos/lumos/config';
-import { Event, EventId, Tag, PublicKey, Timestamp, UnsignedEvent } from '@rust-nostr/nostr-sdk';
 import { TagName } from './tag';
-
-export interface EventToBind {
-  readonly pubkey: string;
-  readonly created_at: number;
-  readonly kind: number;
-  tags: string[][];
-  readonly content: string;
-}
+import { calcEventId, EventToBind, parseSignedEvent } from './event';
 
 export class NostrBinding {
   readonly prefix: 'ckt' | 'ckb';
@@ -34,7 +26,7 @@ export class NostrBinding {
       const eventBytes = bytes.bytify(outputType);
       const eventJsonString = bytesToJsonString(eventBytes);
       try {
-        return Event.fromJson(eventJsonString);
+        return parseSignedEvent(eventJsonString);
       } catch (error: unknown) {
         console.debug(error);
         return null;
@@ -52,19 +44,19 @@ export class NostrBinding {
     };
   }
 
-  finalizeEventToBind(ckbGlobalUniqueId: string, event: EventToBind): UnsignedEvent {
+  finalizeEventToBind(ckbGlobalUniqueId: string, event: EventToBind) {
     const tags = event.tags;
     tags.push([TagName.ckbGlobalUniqueId, ckbGlobalUniqueId]);
-    const eventId = new EventId(
-      PublicKey.fromHex(event.pubkey),
-      Timestamp.fromSecs(event.created_at),
-      event.kind,
-      tags.map((tag) => Tag.parse(tag)),
-      event.content,
-    );
-    const finalizedEvent = { ...event, ...{ id: eventId.toHex(), tags } };
+    const eventId = calcEventId({
+      kind: event.kind,
+      pubkey: event.pubkey,
+      created_at: event.created_at,
+      content: event.content,
+      tags: tags,
+    });
+    const finalizedEvent = { ...event, ...{ id: eventId, tags } };
     console.debug('finalizedEventToBind: ', finalizedEvent);
-    return UnsignedEvent.fromJson(JSON.stringify(finalizedEvent));
+    return finalizedEvent;
   }
 
   buildBindingCell(eventId: HexString, ckbGlobalUniqueId: HexString, lock: Script) {
