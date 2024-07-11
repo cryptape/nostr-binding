@@ -36,7 +36,9 @@
   "dependencies": {
     "@ckb-lumos/base": "^0.23.0",
     "@ckb-lumos/codec": "^0.23.0",
-    "@ckb-lumos/lumos": "^0.23.0",
+    "@ckb-lumos/config-manager": "^0.23.0",
+    "@ckb-lumos/helpers": "^0.23.0",
+    "@ckb-lumos/rpc": "^0.23.0",
     "@noble/hashes": "^1.4.0"
   }
 }

@@ -1,4 +1,4 @@
-import { ScriptConfig } from '@ckb-lumos/lumos/config';
+import { ScriptConfig } from '@ckb-lumos/config-manager';
 
 export interface NostrBindingConfig {
   prefix: 'ckt' | 'ckb';
