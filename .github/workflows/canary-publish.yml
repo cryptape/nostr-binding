@@ -49,12 +49,16 @@ jobs:
         id: vars
         run: echo "COMMIT_ID=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
+      - name: Update version for canary release
+        run: pnpm -r --filter sdk version prerelease --preid "canary-${{ env.COMMIT_ID }}"
+
       - name: Build
         run: pnpm -r --filter sdk run build
 
-      - name: Publish to npm with commit short ID as version
+      - name: Publish to npm with canary tag
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
-        run: |
-          COMMIT_ID=${{ env.COMMIT_ID }}
-          pnpm -r --filter sdk publish --access public --no-git-checks --tag canary-$COMMIT_ID
+        run: pnpm -r --filter sdk publish --access public --no-git-checks --tag canary
+
+      - name: Reset version
+        run: git checkout -- packages/sdk/package.json pnpm-lock.yaml
