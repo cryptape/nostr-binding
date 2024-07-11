@@ -1,6 +1,6 @@
 {
   "name": "nostr-binding",
-  "version": "0.1.0-carnary.0",
+  "version": "0.1.0-rc6",
   "description": "",
   "main": "index.js",
   "workspaces": [
