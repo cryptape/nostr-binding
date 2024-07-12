@@ -1,15 +1,28 @@
-import { nostr } from "@joyid/nostr";
 import {
-  Event,
-  Nip07Signer,
-  PublicKey,
-  UnsignedEvent,
-} from "@rust-nostr/nostr-sdk";
+  nostr,
+  getConnectedPubkey,
+  UnsignedEvent as JoyUnsignedEvent,
+} from "@joyid/nostr";
+import { Event, Nip07Signer, PublicKey } from "@rust-nostr/nostr-sdk";
 
 export class joyIdNip07Signer extends Nip07Signer {
   constructor() {
     // @ts-expect-error inject nostr instance on windows from JoyId
-    window.nostr = nostr;
+    window.nostr = {
+      async getPublicKey(): Promise<string> {
+        const connectedPubkeyStr = await getConnectedPubkey();
+        console.debug("connectedPubkeyStr: ", connectedPubkeyStr);
+        if (connectedPubkeyStr) {
+          return connectedPubkeyStr;
+        }
+
+        return await nostr.getPublicKey(false);
+      },
+
+      async signEvent(unsigned: JoyUnsignedEvent) {
+        return await nostr.signEvent(unsigned);
+      },
+    };
     super();
   }
 
@@ -18,7 +31,13 @@ export class joyIdNip07Signer extends Nip07Signer {
   }
 
   async getPublicKey(): Promise<PublicKey> {
-    const pubkeyStr = await nostr.getPublicKey();
+    const connectedPubkeyStr = await getConnectedPubkey();
+    console.debug("connectedPubkeyStr: ", connectedPubkeyStr);
+    if (connectedPubkeyStr) {
+      return PublicKey.fromHex(connectedPubkeyStr);
+    }
+
+    const pubkeyStr = await nostr.getPublicKey(false);
     return PublicKey.fromHex(pubkeyStr);
   }
 

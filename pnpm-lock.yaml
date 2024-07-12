@@ -20,8 +20,8 @@ importers:
         specifier: ^0.23.0
         version: 0.23.0
       '@joyid/nostr':
-        specifier: ^0.1.5
-        version: 0.1.6(typescript@5.5.3)
+        specifier: ^0.2.0
+        version: 0.2.0(typescript@5.5.3)
       '@nostr-binding/sdk':
         specifier: workspace:^
         version: link:../sdk
@@ -828,8 +828,8 @@ packages:
   '@joyid/common@0.2.0':
     resolution: {integrity: sha512-WBZtgdEccWxjiGHIoDgRFIbnC42ZvmfvFRCTxmx9D4BLvtiFdhAa+g70lUmiHwO28GjgHIHgzHRGNRdLuk81xw==}
 
-  '@joyid/nostr@0.1.6':
-    resolution: {integrity: sha512-j8GStynxleOZUAANQlsrM9vrAvKJYhhx8KG4gdeuLhqZHR3Lpw2hrBl2uECZLRgNB29+O065iffXHy86hF21zg==}
+  '@joyid/nostr@0.2.0':
+    resolution: {integrity: sha512-No9/YIfUp8um3GMPJN5izKR9RYNH+7QJd68ALF4tapuNkMCGAOp2wdWonIRPgM/IgwnWGQagZGDgDs5N9vCENQ==}
 
   '@jridgewell/gen-mapping@0.3.5':
     resolution: {integrity: sha512-IzL8ZoEDIBRWEzlCcRhOaCupYyN5gdIK+Q6fbFdPDg6HqX6jpkItn7DFIpW9LQzXG6Df9sA7+OKnq0qlz/GaQg==}
@@ -5275,7 +5275,7 @@ snapshots:
       - typescript
       - zod
 
-  '@joyid/nostr@0.1.6(typescript@5.5.3)':
+  '@joyid/nostr@0.2.0(typescript@5.5.3)':
     dependencies:
       '@joyid/common': 0.2.0(typescript@5.5.3)
     transitivePeerDependencies:
