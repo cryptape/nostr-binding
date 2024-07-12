@@ -3,7 +3,12 @@ import {
   getConnectedPubkey,
   UnsignedEvent as JoyUnsignedEvent,
 } from "@joyid/nostr";
-import { Event, Nip07Signer, PublicKey } from "@rust-nostr/nostr-sdk";
+import {
+  Event,
+  Nip07Signer,
+  PublicKey,
+  UnsignedEvent,
+} from "@rust-nostr/nostr-sdk";
 
 export class joyIdNip07Signer extends Nip07Signer {
   constructor() {
