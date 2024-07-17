@@ -1,0 +1,24 @@
+[[cells]]
+name = "nostr-binding"
+enable_type_id = true 
+location = { file = "../../build/release/nostr-binding" }
+
+# The lock script set to output cells
+# it's locked by multisig lock script(2-3) with following addresses with order:
+# 1. retric@cryptape.com        ckb1qyqysn2jjy7xr59qwajnqqytvdtmj0jdp0cs6qr8r6
+# 2. cipher@cell.studio         ckb1qyqtf092n2jk6dpc9fqx8w5swlkt7ln9fu3qcfvu5a
+# 3. hanssen0@hanssen0.com      ckb1qyq9wev5gck22wau2286whaz3exc8y87at6sku7v3m
+
+# ckb-cli tx build-multisig-address \
+# --sighash-address ckb1qyqysn2jjy7xr59qwajnqqytvdtmj0jdp0cs6qr8r6 \
+# --sighash-address ckb1qyqtf092n2jk6dpc9fqx8w5swlkt7ln9fu3qcfvu5a \
+# --sighash-address ckb1qyq9wev5gck22wau2286whaz3exc8y87at6sku7v3m \
+# --threshold 2 \
+# --require-first-n 0
+#
+# lock-arg: 0xd4ade5100cf112c9cd3e8da12ae5fc6153293087
+
+[lock]
+code_hash = "0x5c5069eb0857efc65e1bca0c07df34c31663b3622fd3876c876320fc9634e2a8"
+args = "0xd4ade5100cf112c9cd3e8da12ae5fc6153293087"
+hash_type = "type"
