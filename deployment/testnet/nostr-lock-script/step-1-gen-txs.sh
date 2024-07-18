@@ -2,7 +2,7 @@
 set -ex
 cd ../../.. && shasum -a 256 -c checksums.txt && cd -
 
-ckb-cli deploy gen-txs \
+ckb-cli --url https://testnet.ckb.dev deploy gen-txs \
     --deployment-config ./deployment.toml \
     --migration-dir ./migrations \
     --fee-rate 3000 \
