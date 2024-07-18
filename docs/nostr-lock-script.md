@@ -255,9 +255,9 @@ An implementation of the nostr lock script spec above has been deployed to CKB m
 
 | parameter   | value                                                                |
 | ----------- | -------------------------------------------------------------------- |
-| `code_hash` | TODO   |
+| `code_hash` | 0x641a89ad2f77721b803cd50d01351c1f308444072d5fa20088567196c0574c68   |
 | `hash_type` | `type`                                                               |
-| `tx_hash`   | TODO   |
+| `tx_hash`   | 0x1911208b136957d5f7c1708a8835edfe8ae1d02700d5cb2c3a6aacf4d5906306   |
 | `index`     | `0x0`                                                                |
 | `dep_type`  | `code`                                                               |
 
@@ -276,5 +276,6 @@ Reproducible build is supported to verify the deploy script. To build the deploy
 ```bash
 git clone https://github.com/cryptape/nostr-binding.git
 cd nostr-binding
+git checkout ec480b0
 bash scripts/reproducible_build_docker
 ```
