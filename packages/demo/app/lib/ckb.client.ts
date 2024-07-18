@@ -41,7 +41,7 @@ export async function buildUnlockCKBTransaction(
   const capacity = helpers.minimalCellCapacity(output);
   output.cellOutput.capacity = BI.from(capacity).toHexString();
 
-  const txCellDeps = sdk.lock.buildCellDeps();
+  const txCellDeps = await sdk.lock.buildCellDeps();
 
   txSkeleton = txSkeleton.update("inputs", (inputs) =>
     inputs.push(...collectedInputs),
@@ -114,8 +114,11 @@ export async function buildMintTransaction(
   txSkeleton = txSkeleton.update("inputs", (inputs) =>
     inputs.push(...collectedInputs),
   );
+
+  const bindingDep = await sdk.binding.buildCellDeps();
+  const lockDep = await sdk.lock.buildCellDeps();
   txSkeleton = txSkeleton.update("cellDeps", (cellDeps) =>
-    cellDeps.concat(sdk.binding.buildCellDeps(), sdk.lock.buildCellDeps()),
+    cellDeps.concat(lockDep, bindingDep),
   );
   return { txSkeleton, mintEvent };
 }

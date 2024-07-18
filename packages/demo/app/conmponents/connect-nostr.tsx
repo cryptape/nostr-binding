@@ -44,7 +44,7 @@ export function ConnectNostr() {
       setNostrPubkey(pubkey.toBech32());
 
       if (!ckbSigner) {
-        const ckbSigner = buildNostrCKBSigner(pubkey, signer);
+        const ckbSigner = await buildNostrCKBSigner(pubkey, signer);
         setCKBSigner(ckbSigner);
 
         const ckbAddress = ckbSigner.ckbAddress;
@@ -53,7 +53,7 @@ export function ConnectNostr() {
     }
   };
 
-  const buildNostrCKBSigner = (
+  const buildNostrCKBSigner = async (
     publicKey: PublicKey,
     nostrSigner: NostrSigner,
   ) => {
@@ -105,6 +105,7 @@ export function ConnectNostr() {
     const lockScript = sdk.lock.buildScript("0x" + publicKey.toHex());
     const ckbAddress = helpers.encodeToAddress(lockScript);
 
+    const cellDeps = await sdk.lock.buildCellDeps();
     const ckbSigner: CKBSigner = {
       ckbAddress,
       originAddress: publicKey.toBech32(),
@@ -113,7 +114,7 @@ export function ConnectNostr() {
       signTransaction,
       signPreparedTransaction,
       prepareTransaction,
-      cellDeps: sdk.lock.buildCellDeps(),
+      cellDeps,
     };
     return ckbSigner;
   };

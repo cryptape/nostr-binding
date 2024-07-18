@@ -1,5 +1,4 @@
-import { ScriptConfig } from '@ckb-lumos/config-manager';
-import { TESTNET_CONFIGS } from './config';
+import { NostrScriptConfig, TESTNET_CONFIGS } from './config';
 import { TagName } from './tag';
 import { bytesToJsonString, getTimestampNowSecs, jsonStringToBytes } from './util';
 import { CellDep, HexString, utils, WitnessArgs, Script, blockchain, Transaction } from '@ckb-lumos/base';
@@ -17,7 +16,7 @@ export class NostrLock {
   readonly dummyCkbSigHashAll = '0x' + '00'.repeat(32);
 
   readonly prefix: 'ckt' | 'ckb';
-  readonly scriptConfig: ScriptConfig;
+  readonly scriptConfig: NostrScriptConfig;
   rpc: RPC;
 
   constructor(
@@ -108,7 +107,29 @@ export class NostrLock {
     return script.args.slice(4);
   }
 
-  buildCellDeps() {
+  async buildCellDeps() {
+    if (this.scriptConfig.HASH_TYPE === 'type' && this.scriptConfig.TYPE_SCRIPT) {
+      // fetch newest info for type script
+      const cells = await this.rpc.getCells(
+        { script: this.scriptConfig.TYPE_SCRIPT, scriptType: 'type' },
+        'desc',
+        BigInt(1),
+      );
+      if (cells.objects.length === 0) throw new Error('cells not found');
+
+      const cell = cells.objects[0];
+      const cellDeps: CellDep[] = [
+        {
+          outPoint: {
+            txHash: cell.outPoint.txHash,
+            index: cell.outPoint.index,
+          },
+          depType: this.scriptConfig.DEP_TYPE,
+        },
+      ];
+      return cellDeps;
+    }
+
     const cellDeps: CellDep[] = [
       {
         outPoint: {
