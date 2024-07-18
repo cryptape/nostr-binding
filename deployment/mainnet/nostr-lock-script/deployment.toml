@@ -1,7 +1,7 @@
 [[cells]]
 name = "nostr-lock"
 enable_type_id = true 
-location = { file = "../../build/release/nostr-lock" }
+location = { file = "../../../build/release/nostr-lock" }
 
 # The lock script set to output cells
 # it's locked by multisig lock script(2-3) with following addresses with order:

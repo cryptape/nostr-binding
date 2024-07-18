@@ -1,8 +1,8 @@
 #!/bin/bash
 set -ex
-cd ../.. && shasum -a 256 -c checksums.txt && cd -
+cd ../../.. && shasum -a 256 -c checksums.txt && cd -
 
-ckb-cli deploy gen-txs \
+ckb-cli --url https://mainnet.ckb.dev deploy gen-txs \
     --deployment-config ./deployment.toml \
     --migration-dir ./migrations \
     --fee-rate 1600 \

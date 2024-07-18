@@ -1,3 +1,3 @@
 #!/bin/bash
 
-ckb-cli deploy apply-txs --migration-dir ./migrations --info-file info.json
+ckb-cli --url https://mainnet.ckb.dev deploy apply-txs --migration-dir ./migrations --info-file info.json

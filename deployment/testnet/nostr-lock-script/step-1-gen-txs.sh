@@ -1,6 +1,6 @@
 #!/bin/bash
 set -ex
-cd ../.. && shasum -a 256 -c checksums.txt && cd -
+cd ../../.. && shasum -a 256 -c checksums.txt && cd -
 
 ckb-cli deploy gen-txs \
     --deployment-config ./deployment.toml \
