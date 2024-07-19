@@ -38,4 +38,9 @@ const {transaction, lockIndexes} = await sdk.lock.prepareTx(transaction: Transac
 // and then directly generate sigHashAll from the giving transaction, sign it and return
 // signed transaction. You need to call prepareTx before this function.
 const signedTx = await sdk.lock.signPreparedTx(transaction, lockIndexes, signer);
+
+
+//**** Get Nostr Scripts CellDeps ****//
+const lockCellDeps = await sdk.lock.buildCellDeps();
+const bindingCellDeps = await sdk.binding.buildCellDeps();
 ```

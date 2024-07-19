@@ -1,6 +1,6 @@
 import { NostrBinding } from './binding';
 import { NostrLock } from './lock';
-import { NostrBindingConfig } from './config';
+import { SDKConfig } from './config';
 
 export * from './lock';
 export * from './binding';
@@ -13,10 +13,10 @@ export class NostrBindingSDK {
   binding: NostrBinding;
   lock: NostrLock;
 
-  constructor(config?: NostrBindingConfig) {
+  constructor(config?: SDKConfig) {
     if (config) {
-      this.binding = new NostrBinding(config.NOSTR_BINDING, config.prefix);
-      this.lock = new NostrLock(config.NOSTR_LOCK, config.prefix);
+      this.binding = new NostrBinding(config.NOSTR_BINDING, config.prefix, config.rpcUrl);
+      this.lock = new NostrLock(config.NOSTR_LOCK, config.prefix, config.rpcUrl);
     } else {
       this.binding = new NostrBinding();
       this.lock = new NostrLock();

@@ -1,19 +1,25 @@
 import { Cell, CellDep, HexNumber, HexString, Input, Script, WitnessArgs, utils } from '@ckb-lumos/base';
 import { bytesToJsonString } from './util';
 import { bytes } from '@ckb-lumos/codec';
-import { TESTNET_CONFIGS } from './config';
-import { ScriptConfig } from '@ckb-lumos/config-manager';
+import { NostrScriptConfig, TESTNET_CONFIGS } from './config';
 import { TagName } from './tag';
 import { calcEventId, EventToBind, parseSignedEvent } from './event';
 import { minimalCellCapacity } from '@ckb-lumos/helpers';
+import { RPC } from '@ckb-lumos/rpc';
 
 export class NostrBinding {
   readonly prefix: 'ckt' | 'ckb';
-  readonly scriptConfig: ScriptConfig;
+  readonly scriptConfig: NostrScriptConfig;
+  rpc: RPC;
 
-  constructor(scriptConfig = TESTNET_CONFIGS.NOSTR_BINDING, prefix: 'ckt' | 'ckb' = 'ckt') {
+  constructor(
+    scriptConfig = TESTNET_CONFIGS.NOSTR_LOCK,
+    prefix: 'ckt' | 'ckb' = 'ckt',
+    rpcUrl = TESTNET_CONFIGS.rpcUrl,
+  ) {
     this.prefix = prefix;
     this.scriptConfig = scriptConfig;
+    this.rpc = new RPC(rpcUrl);
   }
 
   isBindingType(type: Script | undefined) {
@@ -86,15 +92,38 @@ export class NostrBinding {
     return typeId;
   }
 
-  buildCellDeps() {
-    const cellDeps: CellDep[] = [];
-    cellDeps.push({
-      outPoint: {
-        txHash: this.scriptConfig.TX_HASH,
-        index: this.scriptConfig.INDEX,
+  async buildCellDeps() {
+    if (this.scriptConfig.HASH_TYPE === 'type' && this.scriptConfig.TYPE_SCRIPT) {
+      // fetch newest info for type script
+      const cells = await this.rpc.getCells(
+        { script: this.scriptConfig.TYPE_SCRIPT, scriptType: 'type' },
+        'desc',
+        BigInt(1),
+      );
+      if (cells.objects.length === 0) throw new Error('cells not found');
+
+      const cell = cells.objects[0];
+      const cellDeps: CellDep[] = [
+        {
+          outPoint: {
+            txHash: cell.outPoint.txHash,
+            index: cell.outPoint.index,
+          },
+          depType: this.scriptConfig.DEP_TYPE,
+        },
+      ];
+      return cellDeps;
+    }
+
+    const cellDeps: CellDep[] = [
+      {
+        outPoint: {
+          txHash: this.scriptConfig.TX_HASH,
+          index: this.scriptConfig.INDEX,
+        },
+        depType: this.scriptConfig.DEP_TYPE,
       },
-      depType: this.scriptConfig.DEP_TYPE,
-    });
+    ];
     return cellDeps;
   }
 }
