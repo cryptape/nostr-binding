@@ -1,12 +1,7 @@
-import { bytes } from "@ckb-lumos/codec";
-import { blockchain } from "@ckb-lumos/base";
 import { ReactNode, useContext } from "react";
 import { SingerContext } from "~/context/signer";
-import offCKB from "offckb.config";
-import { Event, UnsignedEvent } from "@rust-nostr/nostr-sdk";
-import { jsonStringToBytes } from "@nostr-binding/sdk";
+import { Event } from "@rust-nostr/nostr-sdk";
 import { buildMintTransaction } from "~/lib/ckb.client";
-import { createTransactionFromSkeleton } from "@ckb-lumos/lumos/helpers";
 
 export interface MintButtonProp {
   setResult: (res: string | ReactNode) => void;
@@ -14,45 +9,24 @@ export interface MintButtonProp {
 }
 
 export function MintButton({ setResult, setAssetEvent }: MintButtonProp) {
-  const context = useContext(SingerContext);
-  const nostrSigner = context.nostrSigner!;
-  const ckbSigner = context.ckbSigner!;
+  const { signer } = useContext(SingerContext);
 
   const mint = async () => {
-    const signerNostrPublicKey = await nostrSigner.publicKey();
-    const result = await buildMintTransaction(
-      signerNostrPublicKey,
-      ckbSigner.ckbAddress,
-    );
-    let txSkeleton = result.txSkeleton;
-    const mintEvent = result.mintEvent;
+    if (!signer) {
+      throw Error("Not connected");
+    }
 
-    const signedMintEvent = await nostrSigner.signEvent(
-      UnsignedEvent.fromJson(JSON.stringify(mintEvent)),
-    );
-    setAssetEvent(signedMintEvent);
+    const { tx, signedEvent } = await buildMintTransaction(signer);
+    setAssetEvent(Event.fromJson(JSON.stringify(signedEvent)));
 
-    const mintEventWitness = bytes.hexify(
-      jsonStringToBytes(signedMintEvent.asJson()),
-    );
-    const witness = bytes.hexify(
-      blockchain.WitnessArgs.pack({
-        outputType: mintEventWitness,
-      }),
-    );
-    txSkeleton = txSkeleton.update(
-      "witnesses",
-      (witnesses: Immutable.List<string>) => witnesses.set(0, witness),
-    );
-    const tx = createTransactionFromSkeleton(txSkeleton);
-    const signedTx = await ckbSigner.signTransaction(tx);
-    const txHash = await offCKB.rpc.sendTransaction(signedTx, "passthrough");
+    const signedTx = await signer.signTransaction(tx);
+    const txHash = await signer.client.sendTransaction(signedTx);
 
     setResult(
       <div className="overflow-x-scroll">
         <div>Mint token tx: {txHash}</div>
         <code className="whitespace-pre">
-          {JSON.stringify(signedTx, null, 2)}
+          {JSON.stringify(JSON.parse(signedTx.stringify()), null, 2)}
         </code>
       </div>,
     );

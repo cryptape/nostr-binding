@@ -1,131 +1,57 @@
-import {
-  EventBuilder,
-  Nip07Signer,
-  NostrSigner,
-  PublicKey,
-  Tag,
-  Timestamp,
-  UnsignedEvent,
-} from "@rust-nostr/nostr-sdk";
 import { useContext, useMemo, useState } from "react";
-import { helpers, Transaction } from "@ckb-lumos/lumos";
-import { CKBSigner, SingerContext } from "~/context/signer";
-import { capacityOf } from "~/lib/ckb.client";
+import { SingerContext } from "~/context/signer";
 import { readEnvNetwork } from "offckb.config";
 import ExpandableDiv from "./expandable";
-import { EventToSign, SignedEvent } from "@nostr-binding/sdk";
-import { sdk } from "~/lib/sdk.client";
-import { joyIdNip07Signer } from "~/lib/nip07.client";
+import { ccc } from "@ckb-ccc/ccc";
+import { cccA } from "@ckb-ccc/ccc/advanced";
 
 export function ConnectNostr() {
   const [nostrPubkey, setNostrPubkey] = useState<string>();
   const [ckbAddress, setCKBAddress] = useState<string>();
   const [balance, setBalance] = useState<string>();
-  const { nostrSigner, setNostrSigner, ckbSigner, setCKBSigner } =
-    useContext(SingerContext)!;
+  const { signer, setSigner } = useContext(SingerContext)!;
 
   const connect = async () => {
-    if (!nostrSigner) {
-      const nip07_signer =
-        "nostr" in window
-          ? new Nip07Signer()
-          : readEnvNetwork() !== "devnet"
-            ? new joyIdNip07Signer()
-            : null;
-      if (nip07_signer == null)
-        return alert(
-          "signer not found, please install Nip07 Extension or JoyId Wallet.",
-        );
-
-      const signer = NostrSigner.nip07(nip07_signer);
-      setNostrSigner(signer);
-
-      const pubkey = await signer.publicKey();
-      setNostrPubkey(pubkey.toBech32());
-
-      if (!ckbSigner) {
-        const ckbSigner = await buildNostrCKBSigner(pubkey, signer);
-        setCKBSigner(ckbSigner);
-
-        const ckbAddress = ckbSigner.ckbAddress;
-        setCKBAddress(ckbAddress);
-      }
+    if (signer) {
+      return;
     }
-  };
 
-  const buildNostrCKBSigner = async (
-    publicKey: PublicKey,
-    nostrSigner: NostrSigner,
-  ) => {
-    // update ckb signer context
-    const signMessage = async (message: string) => {
-      const unsignedEvent = UnsignedEvent.fromJson(message);
-      const signedMessage = await nostrSigner.signEvent(unsignedEvent);
+    const network = readEnvNetwork();
+    const client =
+      network === "mainnet"
+        ? new ccc.ClientPublicMainnet()
+        : new ccc.ClientPublicTestnet();
 
-      return signedMessage.asJson();
-    };
+    const nostrSigner =
+      "nostr" in window
+        ? new ccc.Nip07.Signer(client, window.nostr as cccA.Nip07A.Provider)
+        : network !== "devnet"
+          ? new ccc.JoyId.NostrSigner(
+              client,
+              "Nostr Binding",
+              "https://fav.farm/🆔",
+            )
+          : null;
 
-    const signTransaction = async (tx: Transaction) => {
-      const signer = async (event: EventToSign) => {
-        const eventBuilder = new EventBuilder(
-          event.kind,
-          event.content,
-          event.tags.map((tag) => Tag.parse(tag)),
-        ).customCreatedAt(Timestamp.fromSecs(event.created_at));
-        const nostrSignedEvent =
-          await nostrSigner.signEventBuilder(eventBuilder);
-        const signedEvent: SignedEvent = JSON.parse(nostrSignedEvent.asJson());
-        return signedEvent;
-      };
-      return await sdk.lock.signTx(tx, signer);
-    };
+    if (nostrSigner == null)
+      return alert(
+        "signer not found, please install Nip07 Extension or JoyId Wallet.",
+      );
 
-    const signPreparedTransaction = async (
-      tx: Transaction,
-      lockIndexes: Array<number>,
-    ) => {
-      const signer = async (event: EventToSign) => {
-        const eventBuilder = new EventBuilder(
-          event.kind,
-          event.content,
-          event.tags.map((tag) => Tag.parse(tag)),
-        ).customCreatedAt(Timestamp.fromSecs(event.created_at));
-        const nostrSignedEvent =
-          await nostrSigner.signEventBuilder(eventBuilder);
-        const signedEvent: SignedEvent = JSON.parse(nostrSignedEvent.asJson());
-        return signedEvent;
-      };
-      return await sdk.lock.signPreparedTx(tx, lockIndexes, signer);
-    };
+    setSigner(nostrSigner);
 
-    const prepareTransaction = async (tx: Transaction) => {
-      return await sdk.lock.prepareTx(tx);
-    };
+    const pubkey = await nostrSigner.getInternalAddress();
+    setNostrPubkey(pubkey);
 
-    const lockScript = sdk.lock.buildScript("0x" + publicKey.toHex());
-    const ckbAddress = helpers.encodeToAddress(lockScript);
-
-    const cellDeps = await sdk.lock.buildCellDeps();
-    const ckbSigner: CKBSigner = {
-      ckbAddress,
-      originAddress: publicKey.toBech32(),
-      lockScript,
-      signMessage,
-      signTransaction,
-      signPreparedTransaction,
-      prepareTransaction,
-      cellDeps,
-    };
-    return ckbSigner;
+    const ckbAddress = await nostrSigner.getRecommendedAddress();
+    setCKBAddress(ckbAddress);
   };
 
   useMemo(() => {
-    if (!ckbAddress) return;
+    if (!signer) return;
 
-    capacityOf(ckbAddress).then((bal) =>
-      setBalance(bal.div(100000000).toString()),
-    );
-  }, [ckbAddress]);
+    signer.getBalance().then((bal) => setBalance(ccc.fixedPointToString(bal)));
+  }, [signer]);
 
   return (
     <div className="mb-4 w-full">

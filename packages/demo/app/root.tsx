@@ -7,12 +7,12 @@ import {
   json,
   useLoaderData,
 } from "@remix-run/react";
-import { NostrSigner } from "@rust-nostr/nostr-sdk";
 import { useState } from "react";
-import { CKBSigner, SingerContext } from "./context/signer";
+import { SingerContext } from "./context/signer";
 import { Buffer } from "buffer";
 import type { LinksFunction } from "@remix-run/node";
 import stylesheet from "~/tailwind.css?url";
+import { ccc } from "@ckb-ccc/ccc";
 
 globalThis.Buffer = Buffer as unknown as BufferConstructor;
 
@@ -49,10 +49,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
 export default function App() {
   const data = useLoaderData<typeof loader>();
 
-  const [nostrSigner, setNostrSigner] = useState<NostrSigner | null>(null);
-  const [ckbSigner, setCKBSigner] = useState<CKBSigner | null>(null);
+  const [signer, setSigner] = useState<ccc.SignerNostr | null>(null);
 
-  const value = { nostrSigner, setNostrSigner, ckbSigner, setCKBSigner };
+  const value = { signer, setSigner };
   return (
     <SingerContext.Provider value={value}>
       <Outlet />

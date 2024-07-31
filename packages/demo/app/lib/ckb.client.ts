@@ -1,161 +1,98 @@
-import {
-  helpers,
-  BI,
-  Cell,
-  Script,
-  HashType,
-  utils,
-  Transaction,
-  OutPoint,
-} from "@ckb-lumos/lumos";
 import offCKB from "offckb.config";
-import { blockchain } from "@ckb-lumos/base";
-import { bytes } from "@ckb-lumos/codec";
-import { PublicKey, Timestamp } from "@rust-nostr/nostr-sdk";
+import { Timestamp } from "@rust-nostr/nostr-sdk";
 import { sdk } from "./sdk.client";
 import { EventToBind } from "@nostr-binding/sdk";
+import { ccc } from "@ckb-ccc/ccc";
 
 offCKB.initializeLumosConfig();
 
-const lumosConfig = offCKB.lumosConfig;
-const indexer = offCKB.indexer;
-
 export async function buildUnlockCKBTransaction(
-  nostrPublicKey: PublicKey,
-  newLock: Script,
-  type: Script | undefined,
+  signer: ccc.Signer,
+  toLock: ccc.ScriptLike,
+  type: ccc.ScriptLike | undefined | null,
 ) {
-  const ckbAddress = sdk.lock.encodeToCKBAddress("0x" + nostrPublicKey.toHex());
+  const collectedInputs = await collectTypeCell(signer, type, 1);
 
-  let txSkeleton = helpers.TransactionSkeleton({});
-  const collectedInputs = await collectTypeCell(ckbAddress, type, 1);
+  const tx = ccc.Transaction.from({
+    inputs: collectedInputs.map(({ outPoint, cellOutput }) => ({
+      previousOutput: outPoint,
+      cellOutput,
+    })),
+    outputs: [
+      {
+        lock: toLock,
+        type,
+      },
+    ],
+  });
+  tx.addCellDeps(await sdk.lock.buildCellDeps());
 
-  const output: Cell = {
-    cellOutput: {
-      capacity: BI.from(0).toHexString(),
-      lock: newLock,
-      type,
-    },
-    data: "0x00",
-  };
-  const capacity = helpers.minimalCellCapacity(output);
-  output.cellOutput.capacity = BI.from(capacity).toHexString();
-
-  const txCellDeps = await sdk.lock.buildCellDeps();
-
-  txSkeleton = txSkeleton.update("inputs", (inputs) =>
-    inputs.push(...collectedInputs),
-  );
-  txSkeleton = txSkeleton.update("outputs", (outputs) => outputs.push(output));
-  txSkeleton = txSkeleton.update("cellDeps", (cellDeps) =>
-    cellDeps.concat(txCellDeps),
-  );
-
-  return txSkeleton;
+  return tx;
 }
 
-export async function buildMintTransaction(
-  receiverNostrPublicKey: PublicKey,
-  minerCKBAddress: string,
-) {
-  let txSkeleton = helpers.TransactionSkeleton({});
-  const neededCapacity = BI.from(16000000000);
-  const txFee = BI.from(2000);
-  const fromLock = helpers.parseAddress(minerCKBAddress);
-  const collectedInputs = await collectCell(minerCKBAddress, neededCapacity);
-  const globalUniqueId = sdk.binding.buildGlobalUniqueId(
-    collectedInputs[0],
-    "0x0",
-  );
+export async function buildMintTransaction(signer: ccc.SignerNostr) {
+  const lock = (await signer.getRecommendedAddressObj()).script;
 
+  const tx = ccc.Transaction.from({
+    outputs: [
+      {
+        lock,
+        type: sdk.binding.buildScript("00".repeat(32), "00".repeat(32)),
+      },
+    ],
+    outputsData: ["0x00"],
+  });
+  await tx.completeInputsByCapacity(signer);
+
+  // === Prepare output type ===
+  const globalUniqueId = ccc.hashTypeId(tx.inputs[0], 0).slice(2);
   const eventToBind: EventToBind = {
-    pubkey: receiverNostrPublicKey.toHex(),
+    pubkey: (await signer.getNostrPublicKey()).slice(2),
     kind: 1,
     content:
       "This is a kind-1 short note, it is also a Non Fungible Token on CKB blockchain.",
     tags: [],
     created_at: Timestamp.now().asSecs(),
   };
-
   const mintEvent = sdk.binding.finalizeEventToBind(
     globalUniqueId,
     eventToBind,
   );
+  tx.outputs[0].type = ccc.Script.from(
+    sdk.binding.buildScript(mintEvent.id, globalUniqueId),
+  );
+  // ======
 
-  const lock = sdk.lock.buildScript("0x" + receiverNostrPublicKey.toHex());
-  const bindingCell = sdk.binding.buildBindingCell(
-    mintEvent.id!,
-    globalUniqueId,
-    lock,
+  // === Sign binding event ===
+  const signedEvent = await signer.signNostrEvent(mintEvent);
+
+  const witnessArgs = tx.getWitnessArgsAt(0) ?? ccc.WitnessArgs.from({});
+  witnessArgs.outputType = ccc.hexFrom(
+    ccc.bytesFrom(JSON.stringify(signedEvent), "utf8"),
+  );
+  tx.setWitnessArgsAt(0, witnessArgs);
+  // ======
+
+  tx.addCellDeps(
+    await sdk.binding.buildCellDeps(),
+    await sdk.lock.buildCellDeps(),
   );
 
-  txSkeleton = txSkeleton.update("outputs", (outputs) =>
-    outputs.push(bindingCell),
-  );
-
-  let collectedSum = BI.from(0);
-  for (const cell of collectedInputs) {
-    collectedSum = collectedSum.add(cell.cellOutput.capacity);
-  }
-
-  const changeAmount = collectedSum.sub(neededCapacity).sub(txFee);
-  if (changeAmount.gt(BI.from(6200000000))) {
-    const changeOutput: Cell = {
-      cellOutput: {
-        capacity: changeAmount.toHexString(),
-        lock: fromLock,
-      },
-      data: "0x",
-    };
-    txSkeleton = txSkeleton.update("outputs", (outputs) =>
-      outputs.push(changeOutput),
-    );
-  }
-  txSkeleton = txSkeleton.update("inputs", (inputs) =>
-    inputs.push(...collectedInputs),
-  );
-
-  const bindingDep = await sdk.binding.buildCellDeps();
-  const lockDep = await sdk.lock.buildCellDeps();
-  txSkeleton = txSkeleton.update("cellDeps", (cellDeps) =>
-    cellDeps.concat(lockDep, bindingDep),
-  );
-  return { txSkeleton, mintEvent };
-}
-
-export async function collectCell(ckbAddress: string, neededCapacity: BI) {
-  const fromScript = helpers.parseAddress(ckbAddress, {
-    config: lumosConfig,
-  });
-
-  let collectedSum = BI.from(0);
-  const collected: Cell[] = [];
-  const collector = indexer.collector({ lock: fromScript, type: "empty" });
-  for await (const cell of collector.collect()) {
-    collectedSum = collectedSum.add(cell.cellOutput.capacity);
-    collected.push(cell);
-    if (collectedSum >= neededCapacity) break;
-  }
-
-  if (collectedSum.lt(neededCapacity)) {
-    throw new Error(`Not enough CKB, ${collectedSum} < ${neededCapacity}`);
-  }
-
-  return collected;
+  await tx.completeFeeBy(signer, 1000);
+  return { tx, signedEvent };
 }
 
 export async function collectTypeCell(
-  ckbAddress: string,
-  type: Script | undefined,
+  signer: ccc.Signer,
+  type: ccc.ScriptLike | null | undefined,
   total: number,
 ) {
-  const fromScript = helpers.parseAddress(ckbAddress, {
-    config: lumosConfig,
-  });
+  const collected: ccc.Cell[] = [];
 
-  const collected: Cell[] = [];
-  const collector = indexer.collector({ lock: fromScript, type });
-  for await (const cell of collector.collect()) {
+  for await (const cell of signer.client.findCellsByLock(
+    (await signer.getRecommendedAddressObj()).script,
+    type,
+  )) {
     collected.push(cell);
     if (collected.length >= total) break;
   }
@@ -168,19 +105,15 @@ export async function collectTypeCell(
 }
 
 export async function listTypeCells(
-  ckbAddress: string,
-  type: Script | undefined,
+  signer: ccc.Signer,
+  type: ccc.ScriptLike | undefined | null,
   maxTotal: number,
 ) {
-  const fromScript = helpers.parseAddress(ckbAddress, {
-    config: lumosConfig,
-  });
-
-  const collected: Cell[] = [];
-  const options =
-    type != null ? { lock: fromScript, type } : { lock: fromScript };
-  const collector = indexer.collector(options);
-  for await (const cell of collector.collect()) {
+  const collected: ccc.Cell[] = [];
+  for await (const cell of signer.client.findCellsByLock(
+    (await signer.getRecommendedAddressObj()).script,
+    type,
+  )) {
     collected.push(cell);
     if (collected.length >= maxTotal) break;
   }
@@ -188,49 +121,14 @@ export async function listTypeCells(
   return collected;
 }
 
-export async function capacityOf(address: string): Promise<BI> {
-  const collector = indexer.collector({
-    lock: helpers.parseAddress(address),
-  });
-
-  let balance = BI.from(0);
-  for await (const cell of collector.collect()) {
-    balance = balance.add(cell.cellOutput.capacity);
-  }
-
-  return balance;
-}
-
-export function buildAlwaysSuccessLock(): Script {
-  return {
-    codeHash: lumosConfig.SCRIPTS["ALWAYS_SUCCESS"]!.CODE_HASH,
-    hashType: lumosConfig.SCRIPTS["ALWAYS_SUCCESS"]!.HASH_TYPE as HashType,
-    args: "0x",
-  };
-}
-
-export function buildDeadLock(): Script {
-  return {
-    codeHash: lumosConfig.SCRIPTS["SECP256K1_BLAKE160"]!.CODE_HASH,
-    hashType: lumosConfig.SCRIPTS["SECP256K1_BLAKE160"]!.HASH_TYPE as HashType,
-    args: "0x" + "00".repeat(20),
-  };
-}
-
-export function computeTransactionHash(rawTransaction: Transaction) {
-  const transactionSerialized = bytes.hexify(
-    blockchain.RawTransaction.pack(rawTransaction),
-  );
-  const rawTXHash = utils.ckbHash(transactionSerialized);
-  return rawTXHash;
-}
-
-export async function getWitnessByOutpoint(outpoint: OutPoint) {
-  const txHash = outpoint.txHash;
-  const index = +outpoint.index;
-  const tx = await offCKB.rpc.getTransaction(txHash);
+export async function getWitnessByOutpoint(
+  client: ccc.Client,
+  outpoint: ccc.OutPoint,
+) {
+  const index = Number(outpoint.index);
+  const tx = await client.getTransaction(outpoint.txHash);
   if (tx) {
-    return tx.transaction.witnesses[index];
+    return tx.transaction.getWitnessArgsAt(index);
   }
   return null;
 }
