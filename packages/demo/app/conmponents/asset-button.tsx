@@ -8,23 +8,28 @@ export interface AssetButtonProp {
 }
 
 export function AssetButton({ setResult }: AssetButtonProp) {
-  const context = useContext(SingerContext);
+  const { signer } = useContext(SingerContext);
 
   const onClick = async () => {
-    const ckbAddress = context.ckbSigner?.ckbAddress;
-    if (ckbAddress) {
-      const cells = await listTypeCells(ckbAddress, undefined, 20);
-      if (cells.length > 0) {
-        return setResult(
-          <div className="flex flex-row gap-2 max-w-full">
-            {cells.map((cell, id) => (
-              <AssetBox key={id} cell={cell} setResult={setResult} />
-            ))}
-          </div>,
-        );
-      } else {
-        setResult("Not found");
-      }
+    if (!signer) {
+      return;
+    }
+    const cells = await listTypeCells(signer, undefined, 20);
+    if (cells.length > 0) {
+      return setResult(
+        <div className="flex flex-row gap-2 max-w-full">
+          {cells.map((cell, id) => (
+            <AssetBox
+              key={id}
+              client={signer.client}
+              cell={cell}
+              setResult={setResult}
+            />
+          ))}
+        </div>,
+      );
+    } else {
+      setResult("Not found");
     }
   };
 

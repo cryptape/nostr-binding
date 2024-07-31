@@ -1,42 +1,42 @@
-import { Cell } from "@ckb-lumos/lumos";
-import { blockchain } from "@ckb-lumos/base";
-import { bytes } from "@ckb-lumos/codec";
 import { getWitnessByOutpoint } from "~/lib/ckb.client";
 import { ReactNode, useEffect, useState } from "react";
 import { Event } from "@rust-nostr/nostr-sdk";
 import ExpandableDiv from "./expandable";
 import { sdk } from "~/lib/sdk.client";
 import { UnlockButton } from "./unlock-button";
+import { ccc } from "@ckb-ccc/ccc";
 
 export interface AssetBoxProp {
-  cell: Cell;
+  client: ccc.Client;
+  cell: ccc.Cell;
   setResult: (res: string | ReactNode) => void;
 }
-export const AssetBox: React.FC<AssetBoxProp> = ({ cell, setResult }) => {
+export const AssetBox: React.FC<AssetBoxProp> = ({
+  client,
+  cell,
+  setResult,
+}) => {
   const [event, setEvent] = useState<Event | null | undefined>();
 
-  const getBindingEvent = async (cell: Cell) => {
-    const outpoint = cell.outPoint;
-    if (outpoint && sdk.binding.isBindingType(cell.cellOutput.type)) {
-      const witness = await getWitnessByOutpoint(outpoint);
-      if (witness) {
-        const witnessArgs = blockchain.WitnessArgs.unpack(
-          bytes.bytify(witness),
-        );
-        const event = sdk.binding.parseBindingEventFromWitnessArgs(witnessArgs);
-        return event;
-      }
-    }
-    return null;
-  };
-
   useEffect(() => {
+    const getBindingEvent = async (cell: ccc.Cell) => {
+      const outpoint = cell.outPoint;
+      if (outpoint && sdk.binding.isBindingType(cell.cellOutput.type)) {
+        const witness = await getWitnessByOutpoint(client, outpoint);
+        if (witness) {
+          const event = sdk.binding.parseBindingEventFromWitnessArgs(witness);
+          return event;
+        }
+      }
+      return null;
+    };
+
     getBindingEvent(cell).then((event) => {
       if (event) {
         setEvent(Event.fromJson(JSON.stringify(event)));
       }
     });
-  }, [cell]);
+  }, [cell, client]);
 
   return (
     <div>

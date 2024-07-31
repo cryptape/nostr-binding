@@ -1,12 +1,10 @@
-import { Script } from "@ckb-lumos/lumos";
 import { useContext } from "react";
 import { SingerContext } from "~/context/signer";
-import offCKB from "offckb.config";
-import { buildUnlockCKBTransaction, buildDeadLock } from "~/lib/ckb.client";
+import { buildUnlockCKBTransaction } from "~/lib/ckb.client";
 import { Event } from "@rust-nostr/nostr-sdk";
 import { TagName } from "@nostr-binding/sdk";
 import { sdk } from "~/lib/sdk.client";
-import { createTransactionFromSkeleton } from "@ckb-lumos/lumos/helpers";
+import { ccc } from "@ckb-ccc/ccc";
 
 export interface UnlockButtonProp {
   assetEvent: Event | undefined;
@@ -14,9 +12,7 @@ export interface UnlockButtonProp {
 }
 
 export function UnlockButton({ setResult, assetEvent }: UnlockButtonProp) {
-  const context = useContext(SingerContext);
-  const nostrSigner = context.nostrSigner!;
-  const ckbSigner = context.ckbSigner!;
+  const { signer } = useContext(SingerContext);
 
   const onUnlock = async () => {
     if (assetEvent == null) return;
@@ -33,26 +29,22 @@ export function UnlockButton({ setResult, assetEvent }: UnlockButtonProp) {
     return await unlock(type);
   };
 
-  const unlock = async (bindingType: Script) => {
-    const nostrPubkey = await nostrSigner.publicKey();
-    const newLock = buildDeadLock();
-    let txSkeleton = await buildUnlockCKBTransaction(
-      nostrPubkey,
-      newLock,
-      bindingType,
-    );
+  const unlock = async (bindingType: ccc.ScriptLike) => {
+    if (!signer) {
+      throw new Error("Not connected");
+    }
 
-    const cellDep = await sdk.binding.buildCellDeps();
-    txSkeleton = txSkeleton.update("cellDeps", (cellDeps) =>
-      cellDeps.push(...cellDep),
+    const deadLock = await ccc.Script.fromKnownScript(
+      signer.client,
+      ccc.KnownScript.Secp256k1Blake160,
+      "00".repeat(20),
     );
-    const tx = createTransactionFromSkeleton(txSkeleton);
-    const { transaction, lockIndexes } = await ckbSigner.prepareTransaction(tx);
-    const signedTx = await ckbSigner.signPreparedTransaction(
-      transaction,
-      lockIndexes,
-    );
-    const txHash = await offCKB.rpc.sendTransaction(signedTx, "passthrough");
+    const tx = await buildUnlockCKBTransaction(signer, deadLock, bindingType);
+    tx.addCellDeps(await sdk.binding.buildCellDeps());
+
+    await tx.completeFeeChangeToOutput(signer, 0, 1000);
+
+    const txHash = await signer.sendTransaction(tx);
     setResult("transfer tx: " + txHash);
   };
 
