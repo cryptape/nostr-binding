@@ -90,10 +90,7 @@ const Popup: React.FC<PopupProps> = ({
   onDisconnect,
   ckbAddress,
 }) => {
-  if (!show) return null;
-
   const [balance, setBalance] = useState<string>();
-
   useEffect(() => {
     if (!ckbAddress) return;
 
@@ -102,6 +99,7 @@ const Popup: React.FC<PopupProps> = ({
     );
   }, [ckbAddress]);
 
+  if (!show) return null;
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center">
       <div className="bg-white p-4 rounded-2xl shadow-lg w-1/3 items-center align-middle text-center">
