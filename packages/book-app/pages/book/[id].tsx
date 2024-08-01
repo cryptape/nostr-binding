@@ -1,14 +1,13 @@
-import BookCard from "@/components/book-card";
+import BookCard from "@/components/book/book-card";
 import Layout from "@/components/layout";
-import { NostrClientContext } from "@/context/nostr-client";
+import { Chapters } from "@/components/read/chapters";
 import { Book, getEvents, parseBookFromEvent } from "@/lib/nostr";
 import { sdk } from "@/lib/sdk";
 import offCKBConfig from "@/offckb.config";
 import { encodeToAddress } from "@ckb-lumos/lumos/helpers";
-import { computeScriptHash } from "@ckb-lumos/lumos/utils";
 import { Client, EventId, Filter } from "@rust-nostr/nostr-sdk";
 import { useRouter } from "next/router";
-import { useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 const BookPage = () => {
   const router = useRouter();
@@ -70,15 +69,15 @@ const BookPage = () => {
   }, [book])
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <Layout>Loading...</Layout>;
   }
 
   if (error) {
-    return <div>Error: {error}</div>;
+    return <Layout>Error: {error}</Layout>;
   }
 
   if (!book) {
-    return <div>Book not found</div>;
+    return <Layout>Book not found</Layout>;
   }
 
   return (
@@ -90,15 +89,19 @@ const BookPage = () => {
           title={book.title}
           author={book.author!}
           description={book.summary!}
-          rating={2}
           imageUrl={book.image!}
         />
         <div>
-          <h1>{book.title}</h1>
-          <p>{book.author}</p>
+          <div className="font-bold text-2xl mb-4">{book.title}</div>
+          <p className="text-gray-500">{book.summary}</p>
+          <p>by {book.author}</p>
           <p>owner: <a href={"https://pudge.explorer.nervos.org/address/" + ownerAddress} target="_blank" rel="noopener noreferrer">{ownerAddress?.slice(0,12)}..</a></p>
         </div>
       </div>
+
+      <hr />
+
+      <Chapters eventIds={book.eventIds}/>
     </Layout>
   );
 };

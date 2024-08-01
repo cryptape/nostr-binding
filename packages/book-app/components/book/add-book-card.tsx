@@ -7,6 +7,8 @@ import { EventToBind, jsonStringToBytes } from "@nostr-binding/sdk";
 import { Timestamp, UnsignedEvent } from "@rust-nostr/nostr-sdk";
 import offCKB, { readEnvNetwork } from "@/offckb.config";
 import React, { useContext, useState } from "react";
+import Link from "next/link";
+import { isValidEventId } from "@/lib/nostr";
 
 const AddBookCard: React.FC = () => {
   const { nostrWriteClient } = useContext(NostrClientContext);
@@ -18,14 +20,7 @@ const AddBookCard: React.FC = () => {
   const [summary, setSummary] = useState("");
   const [authorName, setAuthorName] = useState("");
   const [imageUrl, setImageUrl] = useState("");
-
-  // for convenient we just hardcode some 30041 events
-  const eventIds = [
-    "bd7917bc8e43b4dced4f720c553f4cce6e76a2e3d39c30127d27959e4ff67bbf",
-    "6bc9de97231f35749534438d94fc4d06fecc7d16e9f4bc1032bc84398edc536e",
-    "ef488ab9cf957a15c514f23f63f89e5c1b17987c49b8eeb7d8a7ca9ac25db517",
-    "1c61d6daac89e159702845dae77133f1e1e7e334a459c057925df5ee31a5c600",
-  ];
+  const [eventIdsString, setEventIdsString] = useState<string>("");
 
   const handleAddBookClick = () => {
     setShowPopup(true);
@@ -36,10 +31,20 @@ const AddBookCard: React.FC = () => {
   };
 
   const handleSubmit = async () => {
-    console.log(nostrWriteClient, nostrSigner, ckbSigner)
-    if ( !nostrWriteClient || !nostrSigner || !ckbSigner) {
-      throw new Error("no signer/client found!");
+    if (!nostrWriteClient || !nostrSigner || !ckbSigner) {
+      return alert("no signer/client found!");
     }
+
+    const eventIds = eventIdsString
+      .split("\n")
+      .map((id) => id.trim())
+      .filter((id) => id.length > 0)
+      .filter((id) => isValidEventId(id));
+
+    if (eventIds.length === 0) {
+      return alert("no valid event ids!");
+    }
+
     // Handle the submit logic here
     console.log("Title:", title);
     console.log("Image URL:", imageUrl);
@@ -58,7 +63,7 @@ const AddBookCard: React.FC = () => {
         ["image", imageUrl],
         ["summary", summary],
         // add this tag to clarify the blockchain
-        ['ckb_network', readEnvNetwork()],
+        ["ckb_network", readEnvNetwork()],
         ...eventIds.map((id) => ["e", id]),
       ],
       created_at: Timestamp.now().asSecs(),
@@ -74,27 +79,29 @@ const AddBookCard: React.FC = () => {
     setShowPopup(false);
   };
 
-  const mint = async (result: Awaited<ReturnType<typeof buildMintTransaction>>) => {
-    if ( !nostrWriteClient || !nostrSigner || !ckbSigner) {
+  const mint = async (
+    result: Awaited<ReturnType<typeof buildMintTransaction>>
+  ) => {
+    if (!nostrWriteClient || !nostrSigner || !ckbSigner) {
       throw new Error("no signer/client found!");
     }
     let txSkeleton = result.txSkeleton;
     const mintEvent = result.mintEvent;
-    
+
     const signedMintEvent = await nostrSigner.signEvent(
-      UnsignedEvent.fromJson(JSON.stringify(mintEvent)),
+      UnsignedEvent.fromJson(JSON.stringify(mintEvent))
     );
     const mintEventWitness = bytes.hexify(
-      jsonStringToBytes(signedMintEvent.asJson()),
+      jsonStringToBytes(signedMintEvent.asJson())
     );
     const witness = bytes.hexify(
       blockchain.WitnessArgs.pack({
         outputType: mintEventWitness,
-      }),
+      })
     );
     txSkeleton = txSkeleton.update(
       "witnesses",
-      (witnesses: Immutable.List<string>) => witnesses.set(0, witness),
+      (witnesses: Immutable.List<string>) => witnesses.set(0, witness)
     );
     const tx = createTransactionFromSkeleton(txSkeleton);
     const signedTx = await ckbSigner.signTransaction(tx);
@@ -178,23 +185,22 @@ const AddBookCard: React.FC = () => {
             </div>
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700">
-                {"Pages(Event_IDs)"}
+                Chapters: 30041 Event IDs 
+                <Link
+                  href={
+                    "https://next.nostrudel.ninja/#/wiki/topic/nkbip-01?pubkey=dd664d5e4016433a8cd69f005ae1480804351789b59de5af06276de65633d319"
+                  }
+                  target="_blank"
+                >
+                  {" (What is this?)"}
+                </Link>
               </label>
-              <div className="my-2">
-                {eventIds.map((eventId) => (
-                  <div
-                    className="text-sm overflow-x-scroll text-gray-500 my-1"
-                    key={eventId}
-                  >
-                    {eventId}
-                  </div>
-                ))}
-              </div>
-              <input
-                type="text"
-                disabled
-                placeholder="This should allow users to add new article event id to the book"
+              <textarea
+                rows={5}
+                placeholder="One Event Id One line, order matters"
                 className="mt-1 p-2 w-full border border-gray-300 rounded-md"
+                value={eventIdsString}
+                onChange={(e) => setEventIdsString(e.target.value)}
               />
             </div>
 

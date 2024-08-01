@@ -20,9 +20,25 @@ export interface Book {
   eventIds: string[];
 }
 
+export interface BookChapter {
+  eventId: string;
+  title: string;
+  author?: string;
+  image?: string;
+  summary?: string;
+  content: string;
+}
+
 export function isValidBookEvent(e: Event) {
   return (
     e.kind.valueOf() === 30040 &&
+    e.tags.find((tag) => tag.asVec()[0] === "title")
+  );
+}
+
+export function isValidBookChapterEvent(e: Event) {
+  return (
+    e.kind.valueOf() === 30041 &&
     e.tags.find((tag) => tag.asVec()[0] === "title")
   );
 }
@@ -46,6 +62,19 @@ export function parseBookFromEvent(e: Event): Book | null{
         }
       })
       .filter((e) => e != undefined),
+  };
+}
+
+export function parseBookChapterFromEvent(e: Event): BookChapter | null{
+  if (!isValidBookChapterEvent(e)) return null;
+
+  return {
+    eventId: e.id.toHex(),
+    title: e.tags.find((tag) => tag.asVec()[0] === "title")!.asVec()[1],
+    author: e.tags.find((tag) => tag.asVec()[0] === "author")?.asVec()[1],
+    image: e.tags.find((tag) => tag.asVec()[0] === "image")?.asVec()[1],
+    summary: e.tags.find((tag) => tag.asVec()[0] === "summary")?.asVec()[1],
+    content: e.content,
   };
 }
 
@@ -100,4 +129,12 @@ export async function getEvents(readClient: Client, filters: Filter[]) {
 export async function publishEvent(writeClient: Client, event: Event) {
   await writeClient.connect();
   return await writeClient.sendEvent(event);
+}
+
+export function buildTruncateNpub(npub: string) {
+  return npub.slice(0, 8) + ".." + npub.slice(-8);
+}
+
+export function isValidEventId(id: any){
+  return typeof id === "string" && id.length === 64 && /^#[0-9A-F]{6}[0-9a-f]{0,2}$/i.test(id);
 }

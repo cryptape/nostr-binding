@@ -1,34 +1,30 @@
-import { Client, Event, Filter } from "@rust-nostr/nostr-sdk";
-import BookCard from "./book-card";
+import { Filter,  Event } from "@rust-nostr/nostr-sdk";
 import { useCallback, useContext, useEffect, useState } from "react";
-import { isValidBookEvent, getEvents, parseBookFromEvent } from "../lib/nostr";
-import { NostrClientContext } from "../context/nostr-client";
+import { SingerContext } from "../../context/signer";
+import AddBookCard from "./add-book-card";
+import BookCard from "./book-card";
+import { NostrClientContext } from "@/context/nostr-client";
+import { getEvents, isValidBookEvent, parseBookFromEvent } from "@/lib/nostr";
 
-export function AllBooks() {
+export function MyBook() {
   const [events, setEvents] = useState<Event[]>([]);
-  const { nostrReadClient, setNostrReadClient } =
+  const { nostrReadClient } =
     useContext(NostrClientContext);
 
+    const {nostrSigner} = useContext(SingerContext);
+
   const getBookEvents = useCallback(async () => {
-    if (nostrReadClient) {
-      const filter = new Filter().kind(30040).limit(10);
+    if (nostrReadClient && nostrSigner) {
+      const pubkey =await nostrSigner.publicKey();
+      const filter = new Filter().author(pubkey).kind(30040).limit(10);
       const filters = [filter];
       const events = await getEvents(nostrReadClient, filters);
       setEvents((pre) => [...pre, ...events.filter(e => isValidBookEvent(e))]);
       return events;
     }
     return [];
-  }, [nostrReadClient]);
+  }, [nostrReadClient, nostrSigner]);
 
-  useEffect(() => {
-    if (!nostrReadClient) {
-      let client = new Client();
-      client.addRelay("wss://relay.nostr.band").then(() => {
-        client.connect();
-      });
-      setNostrReadClient(client);
-    }
-  }, [nostrReadClient]);
 
   useEffect(() => {
     getBookEvents();
@@ -45,10 +41,10 @@ export function AllBooks() {
           title={book.title}
           author={book.author!}
           description={book.summary!}
-          rating={2}
           imageUrl={book.image!}
         />
       )})}
+      <AddBookCard />
     </div>
   );
 }
