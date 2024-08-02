@@ -3,9 +3,25 @@
 > [!WARNING]
 > This repository is still in the proof-of-concept stage.
 
-This repository contains the scripts for the Nostr binding protocol on CKB. A special Nostr event(Nostr asset Event) is binding on a corresponding unique Cell on CKB, making only one Nostr account owning the Nostr asset Event.
+This repository contains the scripts and toolchains for the Nostr binding protocol on CKB. Any Nostr event with a special tag can be binding on a corresponding unique Cell on the CKB blockchain, making the Nostr event ownable and a digital asset.
 
-We also build a very simple POC demo of the Nostr binding protocol in the `/app` directory. Check out the [README.md](/app/nostr-mint/README.md) about how to run it.
+We also build a very simple POC demo of the Nostr binding protocol in the `/packages/demo` directory. Check out the [README.md](/packages/demo/app/README.md) to see how to run it.
+
+## Structure
+
+```bash
+│── contracts # scripts source code
+│   ├── ckb-nostr-utils
+│   ├── nostr-binding
+│   └── nostr-lock
+├── deployment # script deploy info
+│   ├── mainnet
+│   └── testnet
+│── packages
+│   ├── book-app # a simple workshop app
+│   ├── demo # a simple demo using sdk
+│   └── sdk # javascript sdk for nostr-binding protocol
+```
 
 ## Docs
 
