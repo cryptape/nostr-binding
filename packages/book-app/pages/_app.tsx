@@ -21,7 +21,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
     NostrSigner | null | undefined
   >(null);
   const [ckbSigner, setCKBSigner] = useState<CKBSigner | null | undefined>(
-    null
+    null,
   );
   const signerValue = { nostrSigner, setNostrSigner, ckbSigner, setCKBSigner };
 

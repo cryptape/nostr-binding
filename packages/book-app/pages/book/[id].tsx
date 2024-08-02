@@ -49,24 +49,27 @@ const BookPage = () => {
     }
   }, [id]);
 
-  useEffect(()=>{
+  useEffect(() => {
     const getOwner = async () => {
-      if(!book || !book.ckbGlobalUniqueId)return; 
-      const typeScript = sdk.binding.buildScript(book.eventId, book.ckbGlobalUniqueId)
+      if (!book || !book.ckbGlobalUniqueId) return;
+      const typeScript = sdk.binding.buildScript(
+        book.eventId,
+        book.ckbGlobalUniqueId,
+      );
       const cells = await offCKBConfig.rpc.getCells(
-        { script: typeScript, scriptType: 'type' },
-        'desc',
+        { script: typeScript, scriptType: "type" },
+        "desc",
         BigInt(1),
       );
-      if(cells.objects.length === 1){
+      if (cells.objects.length === 1) {
         const cell = cells.objects[0];
         const ckbAddress = encodeToAddress(cell.output.lock);
         setOwnerAddress(ckbAddress);
       }
-    }
+    };
 
     getOwner();
-  }, [book])
+  }, [book]);
 
   if (loading) {
     return <Layout>Loading...</Layout>;
@@ -95,13 +98,22 @@ const BookPage = () => {
           <div className="font-bold text-2xl mb-4">{book.title}</div>
           <p className="text-gray-500">{book.summary}</p>
           <p>by {book.author}</p>
-          <p>owner: <a href={"https://pudge.explorer.nervos.org/address/" + ownerAddress} target="_blank" rel="noopener noreferrer">{ownerAddress?.slice(0,12)}..</a></p>
+          <p>
+            owner:{" "}
+            <a
+              href={"https://pudge.explorer.nervos.org/address/" + ownerAddress}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {ownerAddress?.slice(0, 12)}..
+            </a>
+          </p>
         </div>
       </div>
 
       <hr />
 
-      <Chapters eventIds={book.eventIds}/>
+      <Chapters eventIds={book.eventIds} />
     </Layout>
   );
 };

@@ -72,7 +72,7 @@ const AddBookCard: React.FC = () => {
     const result = await buildMintTransaction(
       pubkey,
       ckbSigner.ckbAddress,
-      eventToBind
+      eventToBind,
     );
     const txHash = await mint(result);
 
@@ -80,7 +80,7 @@ const AddBookCard: React.FC = () => {
   };
 
   const mint = async (
-    result: Awaited<ReturnType<typeof buildMintTransaction>>
+    result: Awaited<ReturnType<typeof buildMintTransaction>>,
   ) => {
     if (!nostrWriteClient || !nostrSigner || !ckbSigner) {
       throw new Error("no signer/client found!");
@@ -89,19 +89,19 @@ const AddBookCard: React.FC = () => {
     const mintEvent = result.mintEvent;
 
     const signedMintEvent = await nostrSigner.signEvent(
-      UnsignedEvent.fromJson(JSON.stringify(mintEvent))
+      UnsignedEvent.fromJson(JSON.stringify(mintEvent)),
     );
     const mintEventWitness = bytes.hexify(
-      jsonStringToBytes(signedMintEvent.asJson())
+      jsonStringToBytes(signedMintEvent.asJson()),
     );
     const witness = bytes.hexify(
       blockchain.WitnessArgs.pack({
         outputType: mintEventWitness,
-      })
+      }),
     );
     txSkeleton = txSkeleton.update(
       "witnesses",
-      (witnesses: Immutable.List<string>) => witnesses.set(0, witness)
+      (witnesses: Immutable.List<string>) => witnesses.set(0, witness),
     );
     const tx = createTransactionFromSkeleton(txSkeleton);
     const signedTx = await ckbSigner.signTransaction(tx);
@@ -185,7 +185,7 @@ const AddBookCard: React.FC = () => {
             </div>
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700">
-                Chapters: 30041 Event IDs 
+                Chapters: 30041 Event IDs
                 <Link
                   href={
                     "https://next.nostrudel.ninja/#/wiki/topic/nkbip-01?pubkey=dd664d5e4016433a8cd69f005ae1480804351789b59de5af06276de65633d319"

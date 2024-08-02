@@ -95,7 +95,7 @@ const Popup: React.FC<PopupProps> = ({
     if (!ckbAddress) return;
 
     capacityOf(ckbAddress).then((bal) =>
-      setBalance(bal.div(100000000).toString())
+      setBalance(bal.div(100000000).toString()),
     );
   }, [ckbAddress]);
 

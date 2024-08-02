@@ -8,7 +8,7 @@ function readMarkdown(filePath) {
 
     // Extract the title (assuming the first section header is the title)
     const titleMatch = markdownContent.match(/^# (.+)$|^(.+)\n=+$/m);
-    const title = titleMatch ? (titleMatch[1] || titleMatch[2]) : 'Untitled';
+    const title = titleMatch ? titleMatch[1] || titleMatch[2] : "Untitled";
 
     return {
       title,

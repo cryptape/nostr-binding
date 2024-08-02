@@ -11,7 +11,7 @@ import {
 import offCKB from "@/offckb.config";
 import { blockchain } from "@ckb-lumos/lumos/codec";
 import { bytes } from "@ckb-lumos/lumos/codec";
-import { PublicKey, Timestamp } from "@rust-nostr/nostr-sdk";
+import { PublicKey } from "@rust-nostr/nostr-sdk";
 import { sdk } from "./sdk";
 import { EventToBind } from "@nostr-binding/sdk";
 
@@ -23,7 +23,7 @@ const indexer = offCKB.indexer;
 export async function buildUnlockCKBTransaction(
   nostrPublicKey: PublicKey,
   newLock: Script,
-  type: Script | undefined
+  type: Script | undefined,
 ) {
   const ckbAddress = sdk.lock.encodeToCKBAddress("0x" + nostrPublicKey.toHex());
 
@@ -44,11 +44,11 @@ export async function buildUnlockCKBTransaction(
   const txCellDeps = await sdk.lock.buildCellDeps();
 
   txSkeleton = txSkeleton.update("inputs", (inputs) =>
-    inputs.push(...collectedInputs)
+    inputs.push(...collectedInputs),
   );
   txSkeleton = txSkeleton.update("outputs", (outputs) => outputs.push(output));
   txSkeleton = txSkeleton.update("cellDeps", (cellDeps) =>
-    cellDeps.concat(txCellDeps)
+    cellDeps.concat(txCellDeps),
   );
 
   return txSkeleton;
@@ -57,7 +57,7 @@ export async function buildUnlockCKBTransaction(
 export async function buildMintTransaction(
   receiverNostrPublicKey: PublicKey,
   minerCKBAddress: string,
-  eventToBind: EventToBind
+  eventToBind: EventToBind,
 ) {
   let txSkeleton = helpers.TransactionSkeleton({});
   const neededCapacity = BI.from(16000000000);
@@ -66,23 +66,23 @@ export async function buildMintTransaction(
   const collectedInputs = await collectCell(minerCKBAddress, neededCapacity);
   const globalUniqueId = sdk.binding.buildGlobalUniqueId(
     collectedInputs[0],
-    "0x0"
+    "0x0",
   );
 
   const mintEvent = sdk.binding.finalizeEventToBind(
     globalUniqueId,
-    eventToBind
+    eventToBind,
   );
 
   const lock = sdk.lock.buildScript("0x" + receiverNostrPublicKey.toHex());
   const bindingCell = sdk.binding.buildBindingCell(
     mintEvent.id!,
     globalUniqueId,
-    lock
+    lock,
   );
 
   txSkeleton = txSkeleton.update("outputs", (outputs) =>
-    outputs.push(bindingCell)
+    outputs.push(bindingCell),
   );
 
   let collectedSum = BI.from(0);
@@ -100,17 +100,17 @@ export async function buildMintTransaction(
       data: "0x",
     };
     txSkeleton = txSkeleton.update("outputs", (outputs) =>
-      outputs.push(changeOutput)
+      outputs.push(changeOutput),
     );
   }
   txSkeleton = txSkeleton.update("inputs", (inputs) =>
-    inputs.push(...collectedInputs)
+    inputs.push(...collectedInputs),
   );
 
   const bindingDep = await sdk.binding.buildCellDeps();
   const lockDep = await sdk.lock.buildCellDeps();
   txSkeleton = txSkeleton.update("cellDeps", (cellDeps) =>
-    cellDeps.concat(lockDep, bindingDep)
+    cellDeps.concat(lockDep, bindingDep),
   );
   return { txSkeleton, mintEvent };
 }
@@ -139,7 +139,7 @@ export async function collectCell(ckbAddress: string, neededCapacity: BI) {
 export async function collectTypeCell(
   ckbAddress: string,
   type: Script | undefined,
-  total: number
+  total: number,
 ) {
   const fromScript = helpers.parseAddress(ckbAddress, {
     config: lumosConfig,
@@ -162,7 +162,7 @@ export async function collectTypeCell(
 export async function listTypeCells(
   ckbAddress: string,
   type: Script | undefined,
-  maxTotal: number
+  maxTotal: number,
 ) {
   const fromScript = helpers.parseAddress(ckbAddress, {
     config: lumosConfig,
@@ -211,7 +211,7 @@ export function buildDeadLock(): Script {
 
 export function computeTransactionHash(rawTransaction: Transaction) {
   const transactionSerialized = bytes.hexify(
-    blockchain.RawTransaction.pack(rawTransaction)
+    blockchain.RawTransaction.pack(rawTransaction),
   );
   const rawTXHash = utils.ckbHash(transactionSerialized);
   return rawTXHash;
