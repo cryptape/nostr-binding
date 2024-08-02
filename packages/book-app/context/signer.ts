@@ -1,7 +1,14 @@
 import { sdk } from "@/lib/sdk";
 import { CellDep, helpers, Script, Transaction } from "@ckb-lumos/lumos";
 import { EventToSign, SignedEvent } from "@nostr-binding/sdk";
-import { EventBuilder, NostrSigner, PublicKey, Tag, Timestamp, UnsignedEvent } from "@rust-nostr/nostr-sdk";
+import {
+  EventBuilder,
+  NostrSigner,
+  PublicKey,
+  Tag,
+  Timestamp,
+  UnsignedEvent,
+} from "@rust-nostr/nostr-sdk";
 import { createContext } from "react";
 
 export interface CKBSigner {
@@ -39,7 +46,7 @@ export const SingerContext =
 
 export const buildNostrCKBSigner = async (
   publicKey: PublicKey,
-  nostrSigner: NostrSigner
+  nostrSigner: NostrSigner,
 ) => {
   // update ckb signer context
   const signMessage = async (message: string) => {
@@ -54,10 +61,9 @@ export const buildNostrCKBSigner = async (
       const eventBuilder = new EventBuilder(
         event.kind,
         event.content,
-        event.tags.map((tag) => Tag.parse(tag))
+        event.tags.map((tag) => Tag.parse(tag)),
       ).customCreatedAt(Timestamp.fromSecs(event.created_at));
-      const nostrSignedEvent =
-        await nostrSigner.signEventBuilder(eventBuilder);
+      const nostrSignedEvent = await nostrSigner.signEventBuilder(eventBuilder);
       const signedEvent: SignedEvent = JSON.parse(nostrSignedEvent.asJson());
       return signedEvent;
     };
@@ -66,16 +72,15 @@ export const buildNostrCKBSigner = async (
 
   const signPreparedTransaction = async (
     tx: Transaction,
-    lockIndexes: Array<number>
+    lockIndexes: Array<number>,
   ) => {
     const signer = async (event: EventToSign) => {
       const eventBuilder = new EventBuilder(
         event.kind,
         event.content,
-        event.tags.map((tag) => Tag.parse(tag))
+        event.tags.map((tag) => Tag.parse(tag)),
       ).customCreatedAt(Timestamp.fromSecs(event.created_at));
-      const nostrSignedEvent =
-        await nostrSigner.signEventBuilder(eventBuilder);
+      const nostrSignedEvent = await nostrSigner.signEventBuilder(eventBuilder);
       const signedEvent: SignedEvent = JSON.parse(nostrSignedEvent.asJson());
       return signedEvent;
     };

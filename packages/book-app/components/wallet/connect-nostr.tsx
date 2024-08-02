@@ -95,9 +95,15 @@ const Popup: React.FC<PopupProps> = ({
     if (!ckbAddress) return;
 
     capacityOf(ckbAddress).then((bal) =>
-      setBalance(bal.div(100000000).toString())
+      setBalance(bal.div(100000000).toString()),
     );
   }, [ckbAddress]);
+
+  const handleCopy = () => {
+    if (!ckbAddress) return alert("ckb address not found!");
+    navigator.clipboard.writeText(ckbAddress);
+    alert("Address copied to clipboard");
+  };
 
   if (!show) return null;
   return (
@@ -117,6 +123,21 @@ const Popup: React.FC<PopupProps> = ({
 
         <div className="text-2xl font-bold my-2">
           {buildTruncateCkbAddress(ckbAddress || "CKB Address Not Found")}
+          {ckbAddress && (
+            <button
+              onClick={handleCopy}
+              className="text-gray-600 hover:text-gray-800 focus:outline-none mx-2"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z" />
+              </svg>
+            </button>
+          )}
         </div>
 
         <div className="text-lg mt-4 mb-6">{balance} CKB</div>

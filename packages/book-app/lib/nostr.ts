@@ -43,7 +43,7 @@ export function isValidBookChapterEvent(e: Event) {
   );
 }
 
-export function parseBookFromEvent(e: Event): Book | null{
+export function parseBookFromEvent(e: Event): Book | null {
   if (!isValidBookEvent(e)) return null;
 
   return {
@@ -65,7 +65,7 @@ export function parseBookFromEvent(e: Event): Book | null{
   };
 }
 
-export function parseBookChapterFromEvent(e: Event): BookChapter | null{
+export function parseBookChapterFromEvent(e: Event): BookChapter | null {
   if (!isValidBookChapterEvent(e)) return null;
 
   return {
@@ -135,6 +135,10 @@ export function buildTruncateNpub(npub: string) {
   return npub.slice(0, 8) + ".." + npub.slice(-8);
 }
 
-export function isValidEventId(id: any){
-  return typeof id === "string" && id.length === 64 && /^#[0-9A-F]{6}[0-9a-f]{0,2}$/i.test(id);
+export function isValidEventId(id: any) {
+  return (
+    typeof id === "string" &&
+    id.length === 64 &&
+    /^#[0-9A-F]{6}[0-9a-f]{0,2}$/i.test(id)
+  );
 }
