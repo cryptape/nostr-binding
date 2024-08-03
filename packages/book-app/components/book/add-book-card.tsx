@@ -35,6 +35,13 @@ const AddBookCard: React.FC = () => {
       return alert("no signer/client found!");
     }
 
+    console.log(
+      eventIdsString
+        .split("\n")
+        .map((id) => id.trim())
+        .filter((id) => id.length > 0)
+        .filter((id) => isValidEventId(id)),
+    );
     const eventIds = eventIdsString
       .split("\n")
       .map((id) => id.trim())

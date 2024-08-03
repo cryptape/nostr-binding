@@ -136,9 +136,5 @@ export function buildTruncateNpub(npub: string) {
 }
 
 export function isValidEventId(id: any) {
-  return (
-    typeof id === "string" &&
-    id.length === 64 &&
-    /^#[0-9A-F]{6}[0-9a-f]{0,2}$/i.test(id)
-  );
+  return typeof id === "string" && id.length === 64 && /[0-9a-fA-F]+/i.test(id);
 }
