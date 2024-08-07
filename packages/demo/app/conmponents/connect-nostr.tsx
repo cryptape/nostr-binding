@@ -4,6 +4,7 @@ import { readEnvNetwork } from "offckb.config";
 import ExpandableDiv from "./expandable";
 import { ccc } from "@ckb-ccc/ccc";
 import { cccA } from "@ckb-ccc/ccc/advanced";
+import { ClientPrivateDevnet } from "~/context/ccc-devnet";
 
 export function ConnectNostr() {
   const [nostrPubkey, setNostrPubkey] = useState<string>();
@@ -20,7 +21,9 @@ export function ConnectNostr() {
     const client =
       network === "mainnet"
         ? new ccc.ClientPublicMainnet()
-        : new ccc.ClientPublicTestnet();
+        : network === "testnet"
+          ? new ccc.ClientPublicTestnet()
+          : new ClientPrivateDevnet();
 
     const nostrSigner =
       "nostr" in window
@@ -35,7 +38,7 @@ export function ConnectNostr() {
 
     if (nostrSigner == null)
       return alert(
-        "signer not found, please install Nip07 Extension or JoyId Wallet.",
+        "signer not found, please install Nip07 Extension or JoyId Wallet(Only for Non-Devnet environment).",
       );
 
     setSigner(nostrSigner);

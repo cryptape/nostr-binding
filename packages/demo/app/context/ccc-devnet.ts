@@ -1,0 +1,163 @@
+import {
+  CellDepInfo,
+  CellDepInfoLike,
+  ClientJsonRpc,
+  KnownScript,
+  Script,
+} from "@ckb-ccc/ccc";
+import offCKBConfig from "offckb.config";
+
+export const DEVNET_SCRIPTS: Record<
+  string,
+  Pick<Script, "codeHash" | "hashType"> & { cellDeps: CellDepInfoLike[] }
+> = {
+  [KnownScript.Secp256k1Blake160]: {
+    codeHash: offCKBConfig.lumosConfig.SCRIPTS["SECP256K1_BLAKE160"]!
+      .CODE_HASH as `0x${string}`,
+    hashType: offCKBConfig.lumosConfig.SCRIPTS["SECP256K1_BLAKE160"]!.HASH_TYPE,
+    cellDeps: [
+      {
+        cellDep: {
+          outPoint: {
+            txHash:
+              offCKBConfig.lumosConfig.SCRIPTS["SECP256K1_BLAKE160"]!.TX_HASH,
+            index:
+              offCKBConfig.lumosConfig.SCRIPTS["SECP256K1_BLAKE160"]!.INDEX,
+          },
+          depType:
+            offCKBConfig.lumosConfig.SCRIPTS["SECP256K1_BLAKE160"]!.DEP_TYPE,
+        },
+      },
+    ],
+  },
+  [KnownScript.Secp256k1Multisig]: {
+    codeHash: offCKBConfig.lumosConfig.SCRIPTS["SECP256K1_BLAKE160_MULTISIG"]!
+      .CODE_HASH as `0x{string}`,
+    hashType:
+      offCKBConfig.lumosConfig.SCRIPTS["SECP256K1_BLAKE160_MULTISIG"]!
+        .HASH_TYPE,
+    cellDeps: [
+      {
+        cellDep: {
+          outPoint: {
+            txHash:
+              offCKBConfig.lumosConfig.SCRIPTS["SECP256K1_BLAKE160_MULTISIG"]!
+                .TX_HASH,
+            index:
+              offCKBConfig.lumosConfig.SCRIPTS["SECP256K1_BLAKE160_MULTISIG"]!
+                .INDEX,
+          },
+          depType:
+            offCKBConfig.lumosConfig.SCRIPTS["SECP256K1_BLAKE160_MULTISIG"]!
+              .DEP_TYPE,
+        },
+      },
+    ],
+  },
+  [KnownScript.AnyoneCanPay]: {
+    codeHash: offCKBConfig.lumosConfig.SCRIPTS["ANYONE_CAN_PAY"]!
+      .CODE_HASH as `0x{string}`,
+    hashType: offCKBConfig.lumosConfig.SCRIPTS["ANYONE_CAN_PAY"]!.HASH_TYPE,
+    cellDeps: [
+      {
+        cellDep: {
+          outPoint: {
+            txHash: offCKBConfig.lumosConfig.SCRIPTS["ANYONE_CAN_PAY"]!.TX_HASH,
+            index: offCKBConfig.lumosConfig.SCRIPTS["ANYONE_CAN_PAY"]!.INDEX,
+          },
+          depType: offCKBConfig.lumosConfig.SCRIPTS["ANYONE_CAN_PAY"]!.DEP_TYPE,
+        },
+      },
+    ],
+  },
+  [KnownScript.OmniLock]: {
+    codeHash: offCKBConfig.lumosConfig.SCRIPTS["OMNILOCK"]!
+      .CODE_HASH as `0x{string}`,
+    hashType: offCKBConfig.lumosConfig.SCRIPTS["OMNILOCK"]!.HASH_TYPE,
+    cellDeps: [
+      {
+        cellDep: {
+          outPoint: {
+            txHash: offCKBConfig.lumosConfig.SCRIPTS["OMNILOCK"]!.TX_HASH,
+            index: offCKBConfig.lumosConfig.SCRIPTS["OMNILOCK"]!.INDEX,
+          },
+          depType: offCKBConfig.lumosConfig.SCRIPTS["OMNILOCK"]!.DEP_TYPE,
+        },
+      },
+    ],
+  },
+  [KnownScript.TypeId]: {
+    codeHash:
+      "0x00000000000000000000000000000000000000000000000000545950455f4944",
+    hashType: "type",
+    cellDeps: [],
+  },
+  [KnownScript.XUdt]: {
+    codeHash: offCKBConfig.lumosConfig.SCRIPTS["XUDT"]!
+      .CODE_HASH as `0x{string}`,
+    hashType: offCKBConfig.lumosConfig.SCRIPTS["XUDT"]!.HASH_TYPE,
+    cellDeps: [
+      {
+        cellDep: {
+          outPoint: {
+            txHash: offCKBConfig.lumosConfig.SCRIPTS["XUDT"]!.TX_HASH,
+            index: offCKBConfig.lumosConfig.SCRIPTS["XUDT"]!.INDEX,
+          },
+          depType: offCKBConfig.lumosConfig.SCRIPTS["XUDT"]!.DEP_TYPE,
+        },
+      },
+    ],
+  },
+
+  [KnownScript.NostrLock]: {
+    codeHash: offCKBConfig.lumosConfig.SCRIPTS["NOSTR_LOCK"]!
+      .CODE_HASH as `0x{string}`,
+    hashType: offCKBConfig.lumosConfig.SCRIPTS["NOSTR_LOCK"]!.HASH_TYPE,
+    cellDeps: [
+      {
+        cellDep: {
+          outPoint: {
+            txHash: offCKBConfig.lumosConfig.SCRIPTS["NOSTR_LOCK"]!.TX_HASH,
+            index: offCKBConfig.lumosConfig.SCRIPTS["NOSTR_LOCK"]!.INDEX,
+          },
+          depType: offCKBConfig.lumosConfig.SCRIPTS["NOSTR_LOCK"]!.DEP_TYPE,
+        },
+      },
+    ],
+  },
+};
+
+export class ClientPrivateDevnet extends ClientJsonRpc {
+  constructor(url = offCKBConfig.rpcUrl, timeout?: number) {
+    super(url, timeout);
+  }
+
+  get addressPrefix(): string {
+    return "ckt";
+  }
+
+  async getKnownScript(
+    script: KnownScript,
+  ): Promise<
+    Pick<Script, "codeHash" | "hashType"> & { cellDeps: CellDepInfo[] }
+  > {
+    if (
+      script in
+      [
+        KnownScript.COTA,
+        KnownScript.JoyId,
+        KnownScript.OutputTypeProxyLock,
+        KnownScript.UniqueType,
+        KnownScript.SingleUseLock,
+      ]
+    ) {
+      throw new Error(`offckb devnet has no such known script ${script}`);
+    }
+
+    const found = DEVNET_SCRIPTS[script];
+    return {
+      ...found,
+      cellDeps: found.cellDeps.map((c) => CellDepInfo.from(c)),
+    };
+  }
+}
