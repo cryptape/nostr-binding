@@ -51,6 +51,11 @@ export async function buildUnlockCKBTransaction(
     cellDeps.concat(txCellDeps),
   );
 
+  const witnessesArray = new Array(collectedInputs.length).fill("0x");
+  txSkeleton = txSkeleton.update("witnesses", (witnesses) =>
+    witnesses.push(...witnessesArray),
+  );
+
   return txSkeleton;
 }
 
@@ -111,6 +116,11 @@ export async function buildMintTransaction(
   const lockDep = await sdk.lock.buildCellDeps();
   txSkeleton = txSkeleton.update("cellDeps", (cellDeps) =>
     cellDeps.concat(lockDep, bindingDep),
+  );
+
+  const witnessesArray = new Array(collectedInputs.length).fill("0x");
+  txSkeleton = txSkeleton.update("witnesses", (witnesses) =>
+    witnesses.push(...witnessesArray),
   );
   return { txSkeleton, mintEvent };
 }
