@@ -1,11 +1,10 @@
 import {
-  CellDepInfo,
+  ccc,
   CellDepInfoLike,
-  ClientJsonRpc,
   KnownScript,
   Script,
 } from "@ckb-ccc/ccc";
-import offCKBConfig from "offckb.config";
+import offCKBConfig, { Network } from "offckb.config";
 
 export const DEVNET_SCRIPTS: Record<
   string,
@@ -127,37 +126,13 @@ export const DEVNET_SCRIPTS: Record<
   },
 };
 
-export class ClientPrivateDevnet extends ClientJsonRpc {
-  constructor(url = offCKBConfig.rpcUrl, timeout?: number) {
-    super(url, timeout);
-  }
+export function buildCccClient(network: Network){
+  const client =
+  network === "mainnet" 
+    ? new ccc.ClientPublicMainnet()
+    : network === "testnet"
+      ? new ccc.ClientPublicTestnet()
+      : new ccc.ClientPublicTestnet(offCKBConfig.rpcUrl, undefined, DEVNET_SCRIPTS);
 
-  get addressPrefix(): string {
-    return "ckt";
-  }
-
-  async getKnownScript(
-    script: KnownScript,
-  ): Promise<
-    Pick<Script, "codeHash" | "hashType"> & { cellDeps: CellDepInfo[] }
-  > {
-    if (
-      script in
-      [
-        KnownScript.COTA,
-        KnownScript.JoyId,
-        KnownScript.OutputTypeProxyLock,
-        KnownScript.UniqueType,
-        KnownScript.SingleUseLock,
-      ]
-    ) {
-      throw new Error(`offckb devnet has no such known script ${script}`);
-    }
-
-    const found = DEVNET_SCRIPTS[script];
-    return {
-      ...found,
-      cellDeps: found.cellDeps.map((c) => CellDepInfo.from(c)),
-    };
-  }
+  return client;
 }

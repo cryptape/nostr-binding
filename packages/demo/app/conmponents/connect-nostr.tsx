@@ -4,7 +4,7 @@ import { readEnvNetwork } from "offckb.config";
 import ExpandableDiv from "./expandable";
 import { ccc } from "@ckb-ccc/ccc";
 import { cccA } from "@ckb-ccc/ccc/advanced";
-import { ClientPrivateDevnet } from "~/context/ccc-devnet";
+import { buildCccClient } from "~/lib/ccc.client";
 
 export function ConnectNostr() {
   const [nostrPubkey, setNostrPubkey] = useState<string>();
@@ -18,12 +18,7 @@ export function ConnectNostr() {
     }
 
     const network = readEnvNetwork();
-    const client =
-      network === "mainnet"
-        ? new ccc.ClientPublicMainnet()
-        : network === "testnet"
-          ? new ccc.ClientPublicTestnet()
-          : new ClientPrivateDevnet();
+    const client = buildCccClient(network); 
 
     const nostrSigner =
       "nostr" in window
