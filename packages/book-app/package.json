@@ -1,6 +1,6 @@
 {
-  "name": "frontend",
-  "version": "0.1.0",
+  "name": "nostr-binding-book-app",
+  "version": "0.1.0-rc9",
   "private": true,
   "scripts": {
     "dev": "next dev",
