@@ -3,7 +3,7 @@
   "version": "0.1.0-rc8",
   "description": "sdk for nostr-binding protocol",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && tsc --project tsconfig.commonjs.json",
     "test": "jest",
     "lint": "eslint \"src/**/*.ts\" \"tests/**/*.ts\" --ignore-pattern 'node_modules/'",
     "lint:fix": "eslint \"src/**/*.ts\" \"tests/**/*.ts\" --ignore-pattern 'node_modules/' --fix",
@@ -15,9 +15,18 @@
   ],
   "license": "MIT",
   "files": [
-    "dist"
+    "dist",
+    "src",
+    "dist.commonjs"
   ],
-  "main": "dist/index.js",
+  "main": "dist.commonjs/index.js",
+  "module": "dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "default": "./dist.commonjs/index.js"
+    }
+  },
   "private": false,
   "publishConfig": {
     "access": "public"
