@@ -1,9 +1,4 @@
-import {
-  ccc,
-  CellDepInfoLike,
-  KnownScript,
-  Script,
-} from "@ckb-ccc/ccc";
+import { ccc, CellDepInfoLike, KnownScript, Script } from "@ckb-ccc/ccc";
 import offCKBConfig, { Network } from "offckb.config";
 
 export const DEVNET_SCRIPTS: Record<
@@ -126,13 +121,17 @@ export const DEVNET_SCRIPTS: Record<
   },
 };
 
-export function buildCccClient(network: Network){
+export function buildCccClient(network: Network) {
   const client =
-  network === "mainnet" 
-    ? new ccc.ClientPublicMainnet()
-    : network === "testnet"
-      ? new ccc.ClientPublicTestnet()
-      : new ccc.ClientPublicTestnet(offCKBConfig.rpcUrl, undefined, DEVNET_SCRIPTS);
+    network === "mainnet"
+      ? new ccc.ClientPublicMainnet()
+      : network === "testnet"
+        ? new ccc.ClientPublicTestnet()
+        : new ccc.ClientPublicTestnet(
+            offCKBConfig.rpcUrl,
+            undefined,
+            DEVNET_SCRIPTS,
+          );
 
   return client;
 }

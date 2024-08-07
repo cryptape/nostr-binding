@@ -18,7 +18,7 @@ export function ConnectNostr() {
     }
 
     const network = readEnvNetwork();
-    const client = buildCccClient(network); 
+    const client = buildCccClient(network);
 
     const nostrSigner =
       "nostr" in window
