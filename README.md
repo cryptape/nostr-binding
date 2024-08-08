@@ -46,8 +46,8 @@ Spec for implementation
 Just start the dApp:
 
 ```sh
-cd app/nostr-mint
-npm i && NETWORK=testnet npm run dev 
+cd packages/demo
+pnpm i && NETWORK=testnet pnpm run dev 
 ```
 
 Or visit: [nostr-binding.vercel.app](https://nostr-binding.vercel.app/)
@@ -101,7 +101,7 @@ Deploy reproducible binaries on testnet and mainnet.
 ### 3. Deploy Scripts
 
 ```sh
-cd app/nostr-mint
+cd packages/demo
 offckb deploy --network devnet
 ```
 The deployed script info is auto-updated in the `offckb.config.ts` file in the app so you can use it directly.
@@ -109,8 +109,8 @@ The deployed script info is auto-updated in the `offckb.config.ts` file in the a
 ### 4. Start the DApp
 
 ```sh
-cd app/nostr-mint
-npm i && NETWORK=devnet npm run dev 
+cd packages/demo
+pnpm i && NETWORK=devnet pnpm run dev 
 ```
 
 ### 5. Deposit CKB to Nostr Account
