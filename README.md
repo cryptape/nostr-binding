@@ -60,7 +60,7 @@ Or visit: [nostr-binding.vercel.app](https://nostr-binding.vercel.app/)
 offckb node
 ```
 
-*Required [offckb](https://github.com/RetricSu/offckb) version >= 0.2.2*
+*Required [offckb](https://github.com/RetricSu/offckb) version >= 0.3.0-rc1*
 
 ### 2. Prepare Scripts
 
