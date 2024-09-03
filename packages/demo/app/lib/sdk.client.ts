@@ -51,5 +51,5 @@ export const sdk = new NostrBindingSDK(
     ? DEVNET_CONFIGS
     : network === "testnet"
       ? TESTNET_CONFIGS
-      : MAINNET_CONFIGS
+      : MAINNET_CONFIGS,
 );
