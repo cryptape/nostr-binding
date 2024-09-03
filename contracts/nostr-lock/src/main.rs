@@ -40,6 +40,8 @@ pub fn entry() -> Result<(), Error> {
         return Err(Error::InvalidScriptArgs);
     }
 
+    debug!("hello, this is new add!");
+
     let sighash_all = generate_sighash_all()?;
     let sighash_all_hex = hex::encode(&sighash_all);
     debug!("sighash_all = {}", sighash_all_hex);

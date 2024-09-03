@@ -4,8 +4,6 @@ import { sdk } from "./sdk.client";
 import { EventToBind } from "@nostr-binding/sdk";
 import { ccc } from "@ckb-ccc/ccc";
 
-offCKB.initializeLumosConfig();
-
 export async function buildUnlockCKBTransaction(
   signer: ccc.Signer,
   toLock: ccc.ScriptLike,
