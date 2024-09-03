@@ -1,4 +1,3 @@
-import offCKB from "offckb.config";
 import { Timestamp } from "@rust-nostr/nostr-sdk";
 import { sdk } from "./sdk.client";
 import { EventToBind } from "@nostr-binding/sdk";
