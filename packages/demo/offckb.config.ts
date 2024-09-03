@@ -84,8 +84,8 @@ export function readEnvNetwork(): Network {
   // according to your frontend framework
   const defaultNetwork = "devnet";
   let network = defaultNetwork;
-  if (typeof window != null) {
-    //@ts-ignore
+  if (typeof window !== "undefined") {
+    //@ts-expect-error "env"
     network = window.ENV.NETWORK;
   }
   if (!network) return defaultNetwork;
