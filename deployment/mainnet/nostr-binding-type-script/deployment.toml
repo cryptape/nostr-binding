@@ -1,24 +1,35 @@
 [[cells]]
 name = "nostr-binding"
-enable_type_id = true 
+enable_type_id = true
 location = { file = "../../../build/release/nostr-binding" }
 
 # The lock script set to output cells
 # it's locked by multisig lock script(2-3) with following addresses with order:
-# 1. retric@cryptape.com        ckb1qyqysn2jjy7xr59qwajnqqytvdtmj0jdp0cs6qr8r6
-# 2. cipher@cell.studio         ckb1qyqtf092n2jk6dpc9fqx8w5swlkt7ln9fu3qcfvu5a
-# 3. hanssen0@hanssen0.com      ckb1qyq9wev5gck22wau2286whaz3exc8y87at6sku7v3m
+# 1. retric@cryptape.com        ckb1qzda0cr08m85hc8jlnfp3zer7xulejywt49kt2rr0vthywaa50xwsq2gf4ffz0rp6zs8wefsqz9kx4ae8exshugpnkqha
+# 2. lynndon@gmail.com          ckb1qzda0cr08m85hc8jlnfp3zer7xulejywt49kt2rr0vthywaa50xwsqv8rhlzfvjl22jhg6j7046x9a6xph3vvwq2luq73
+# 3. hanssen0@hanssen0.com      ckb1qzda0cr08m85hc8jlnfp3zer7xulejywt49kt2rr0vthywaa50xwsq0m2fr3ygwszxa77l5r7utgku85wyqvjac5wppfj
 
 # ckb-cli tx build-multisig-address \
-# --sighash-address ckb1qyqysn2jjy7xr59qwajnqqytvdtmj0jdp0cs6qr8r6 \
-# --sighash-address ckb1qyqtf092n2jk6dpc9fqx8w5swlkt7ln9fu3qcfvu5a \
-# --sighash-address ckb1qyq9wev5gck22wau2286whaz3exc8y87at6sku7v3m \
+# --sighash-address ckb1qzda0cr08m85hc8jlnfp3zer7xulejywt49kt2rr0vthywaa50xwsq2gf4ffz0rp6zs8wefsqz9kx4ae8exshugpnkqha \
+# --sighash-address ckb1qzda0cr08m85hc8jlnfp3zer7xulejywt49kt2rr0vthywaa50xwsqv8rhlzfvjl22jhg6j7046x9a6xph3vvwq2luq73 \
+# --sighash-address ckb1qzda0cr08m85hc8jlnfp3zer7xulejywt49kt2rr0vthywaa50xwsq0m2fr3ygwszxa77l5r7utgku85wyqvjac5wppfj \
 # --threshold 2 \
-# --require-first-n 0
+# --require-first-n 0 \
+# --multisig-code-hash 0x5c5069eb0857efc65e1bca0c07df34c31663b3622fd3876c876320fc9634e2a8
 #
-# lock-arg: 0xd4ade5100cf112c9cd3e8da12ae5fc6153293087
+# lock-arg: 0x269ca034aa160f5265b65318123047bee882f244
 
 [lock]
 code_hash = "0x5c5069eb0857efc65e1bca0c07df34c31663b3622fd3876c876320fc9634e2a8"
-args = "0xd4ade5100cf112c9cd3e8da12ae5fc6153293087"
+args = "0x269ca034aa160f5265b65318123047bee882f244"
 hash_type = "type"
+
+# For unlocking inputs with old multisig lock script
+[multisig_config]
+sighash_addresses = [
+	"ckb1qyqysn2jjy7xr59qwajnqqytvdtmj0jdp0cs6qr8r6",
+	"ckb1qyqtf092n2jk6dpc9fqx8w5swlkt7ln9fu3qcfvu5a",
+	"ckb1qyq9wev5gck22wau2286whaz3exc8y87at6sku7v3m",
+]
+require_first_n = 0
+threshold = 2
