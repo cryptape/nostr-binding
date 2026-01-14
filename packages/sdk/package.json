@@ -1,6 +1,6 @@
 {
   "name": "@nostr-binding/sdk",
-  "version": "0.1.0-rc9",
+  "version": "0.1.0-rc10",
   "description": "sdk for nostr-binding protocol",
   "scripts": {
     "build": "tsc && tsc --project tsconfig.commonjs.json",
